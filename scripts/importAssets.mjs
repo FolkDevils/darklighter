@@ -41,23 +41,28 @@ const BRAND_TOKENS = {
 /**
  * WHAT GETS IMPORTED — read docs/NORTH_STAR.md before adding to this list.
  *
- * Only FIXED MARKS are imported: the wordmark and the compact lockup's
- * wordmark-bearing art. Everything else in assets/protora/ (the radar
- * scopes, telemetry panels, sweep modules, launch kits, craft cards) is a
- * TARGET the engine must generate from primitives — those live as composite
- * ComponentDefs in src/components-model/defs/, not as flat art. Importing a
- * scene here would ship a one-off graphic the user can't vary, which is the
- * opposite of the product.
+ * Only FIXED MARKS are imported: the wordmark and the named drone
+ * silhouettes in assets/protora/drones/. Everything else in assets/protora/
+ * (the radar scopes, telemetry panels, sweep modules, launch kits, craft
+ * cards) is a TARGET the engine must generate from primitives — those live
+ * as composite ComponentDefs in src/components-model/defs/, not as flat art.
+ * Importing a scene here would ship a one-off graphic the user can't vary,
+ * which is the opposite of the product.
  *
  * The P mark is deliberately absent: its geometry is extracted in
  * src/assets/brand/logoP.ts and rebuilt by defs/logoP.tsx so its radar bowl
- * can hold live components.
+ * can hold live components. The drones ARE imported: each is a single-ink
+ * planform the `craft` component swaps by name (defs/craft.tsx).
  *
  * Labels transcribed from assets/protora/ELEMENTS.md (the "Group NNN"
- * filenames are not semantic).
+ * filenames are not semantic) and from the drone filenames themselves.
  */
 const CATALOG = [
   ["logoMain.svg", "protoraWordmark", "PROTORA Wordmark", "brand", "Horizontal PROTORA wordmark, single ink."],
+  ["drones/X47C.svg", "x47c", "X47C", "craft", "X-47C flying-wing drone planform."],
+  ["drones/nEUROn.svg", "nEUROn", "nEUROn", "craft", "nEUROn stealth UCAV planform."],
+  ["drones/X45C.svg", "x45c", "X45C", "craft", "X-45C unmanned combat air vehicle planform."],
+  ["drones/Sentinel.svg", "sentinel", "Sentinel", "craft", "Sentinel high-altitude UAV planform."],
 ];
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));

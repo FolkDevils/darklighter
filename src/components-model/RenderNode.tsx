@@ -50,7 +50,13 @@ export function RenderNode({ node, animate, selectedId, inherited = null, surfac
       <div
         data-node-id={node.id}
         className={cls}
-        style={{ width: "100%", height: "100%", opacity: node.style.opacity }}
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          opacity: node.style.opacity,
+          overflow: "visible",
+        }}
       >
         {content}
       </div>
@@ -61,9 +67,15 @@ export function RenderNode({ node, animate, selectedId, inherited = null, surfac
     <div
       data-node-id={node.id}
       className={cls}
-      style={{ position: "relative", width: "100%", height: "100%", opacity: node.style.opacity }}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        opacity: node.style.opacity,
+        overflow: "visible",
+      }}
     >
-      <div style={{ position: "absolute", inset: 0 }}>{content}</div>
+      <div style={{ position: "absolute", inset: 0, overflow: "visible" }}>{content}</div>
       {node.children.map(
         (child) =>
           !child.hidden && (
@@ -75,6 +87,7 @@ export function RenderNode({ node, animate, selectedId, inherited = null, surfac
                 top: child.layout.y,
                 width: child.layout.w,
                 height: child.layout.h,
+                overflow: "visible",
                 transform: child.layout.rotation ? `rotate(${child.layout.rotation}deg)` : undefined,
               }}
             >

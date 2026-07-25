@@ -1,6 +1,6 @@
 /**
  * `pingCraft` — tracked-unit icon (PLAN.md §5.2 composites), rebuilt from
- * primitives to match `assets/protora/Group 276.svg`: a craft silhouette
+ * primitives to match `assets/protora/Group 276.svg`: an X45C planform
  * inside radiating ping rings.
  *
  * REBUILT, NOT IMPORTED (docs/NORTH_STAR.md).
@@ -22,6 +22,10 @@ declare module "@/components-model/types" {
 }
 
 const SIZE = 300;
+/** X45C native 188∶141. Drift room is handled inside craft's padded viewBox. */
+const UNIT_DRIFT = 18;
+const UNIT_W = 120;
+const UNIT_H = Math.round((UNIT_W * 141) / 188);
 
 function factory(): ComponentNode<"pingCraft"> {
   return baseNode(
@@ -40,8 +44,8 @@ function factory(): ComponentNode<"pingCraft"> {
         ),
         part(
           "craft",
-          { x: SIZE / 2 - 46, y: SIZE / 2 - 46, w: 92, h: 92 },
-          { craftId: "delta", roleColor: "ink", driftRadius: 18 },
+          { x: SIZE / 2 - UNIT_W / 2, y: SIZE / 2 - UNIT_H / 2, w: UNIT_W, h: UNIT_H },
+          { craftId: "x45c", roleColor: "ink", driftRadius: UNIT_DRIFT },
           { name: "Unit", animation: { behavior: "drift", inherit: false, durationMs: 7000 } },
         ),
       ],

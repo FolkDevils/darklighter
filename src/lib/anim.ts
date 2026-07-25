@@ -177,6 +177,62 @@ export function wanderPath(
 }
 
 /**
+ * A loitering flight circuit for `animateMotion rotate="auto"` — a smooth,
+ * one-direction loop around home, the way a real aircraft holds a patrol
+ * racetrack rather than darting to random points and doubling back.
+ *
+ * `wanderPath` puts home (0,0) at the CENTER of its route, so a contact
+ * regularly swings out toward the far side of the loop and back through the
+ * middle — fine for a blip, wrong for something with a nose: the direction of
+ * travel reverses by up to 180° right at that pinch, and a nose slaved to it
+ * via `rotate="auto"` whips around just as fast. Here home sits ON the
+ * circle instead, and every waypoint advances the same way around it, so the
+ * bearing turns gradually and monotonically — no reversals, no snapping.
+ *
+ * Home sitting on the circle's edge means the loop necessarily bulges to one
+ * side of it, not around it — so which side has to be randomized per call
+ * (seeded on `rand`), otherwise every contact in a swarm bulges the exact
+ * same direction and the whole field reads as creeping off-center as a group
+ * instead of each contact loitering in place.
+ *
+ * @param rand    seeded 0..1 generator, called with a salt
+ * @param radius  radius of the loiter circle
+ * @param legs    waypoints sampled around the circle; higher = rounder
+ * @param reverse fly the circuit the other way round
+ */
+export function flightLoopPath(
+  rand: (salt: number) => number,
+  radius: number,
+  legs = 8,
+  reverse = false,
+): string {
+  const r = Number.isFinite(radius) ? Math.max(0, radius) : 0;
+  const count = Math.max(3, Math.round(Number.isFinite(legs) ? legs : 8));
+  const dir = reverse ? -1 : 1;
+  // Which compass direction the loop bulges into, per instance — see above.
+  const heading = (rand(97) * Math.PI * 2);
+  const cosH = Math.cos(heading);
+  const sinH = Math.sin(heading);
+  // Circle centered a radius away from home so home itself sits on its edge —
+  // the craft banks into the loop from a standing start instead of teleporting.
+  const cy = -r;
+  const pts: [number, number][] = [];
+  for (let k = 0; k < count; k++) {
+    // Point 0 must land exactly on home for the resting/exported frame to
+    // match the node's own layout position — no jitter on it. Rotating
+    // (0,0) about itself is still (0,0), so the heading rotation below can't
+    // break that.
+    const wobble = k === 0 ? 1 : 0.88 + rand(k * 5 + 3) * 0.24;
+    const deg = 90 + dir * (k / count) * 360;
+    const rad = (deg * Math.PI) / 180;
+    const x0 = r * wobble * Math.cos(rad);
+    const y0 = cy + r * wobble * Math.sin(rad);
+    pts.push([x0 * cosH - y0 * sinH, x0 * sinH + y0 * cosH]);
+  }
+  return closedSpline(pts);
+}
+
+/**
  * Per-element speed spread for swarm motion: contacts that all move at exactly
  * the same rate read as a mechanism, not as separate things being tracked.
  */

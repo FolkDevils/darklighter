@@ -3,8 +3,8 @@
  * composites), rebuilt from primitives to match `assets/protora/Group
  * 147.svg` / `Group 328.svg`.
  *
- * REBUILT, NOT IMPORTED (docs/NORTH_STAR.md). The "wasp formation" variant
- * of the source pair is just the formation toggle below.
+ * REBUILT, NOT IMPORTED (docs/NORTH_STAR.md). The formation of small craft
+ * mirrors the wasp pack in `Group 328.svg`, now drawn with the nEUROn planform.
  */
 import type { ComponentNode } from "@/components-model/types";
 import { defineComponent, type RenderProps } from "@/components-model/registry";
@@ -25,13 +25,16 @@ declare module "@/components-model/types" {
 const W = 520;
 const H = 340;
 
-function wasps(count: number): ComponentNode[] {
+function formation(count: number): ComponentNode[] {
+  // nEUROn is the most compact planform — good for the packed formation.
+  const w = 48;
+  const h = Math.round((w * 129) / 146);
   return Array.from({ length: Math.max(0, count) }, (_, i) =>
     part(
       "craft",
-      { x: 316 + (i % 2) * 54, y: 232 + Math.floor(i / 2) * 48, w: 44, h: 44 },
-      { craftId: "wasp", roleColor: "primary", headingDeg: -28 },
-      { name: `Wasp ${i + 1}`, animation: { behavior: "fadeIn", delayMs: 900 + i * 140, durationMs: 500 } },
+      { x: 316 + (i % 2) * 54, y: 232 + Math.floor(i / 2) * 48, w, h },
+      { craftId: "nEUROn", roleColor: "primary", headingDeg: -28 },
+      { name: `nEUROn ${i + 1}`, animation: { behavior: "fadeIn", delayMs: 900 + i * 140, durationMs: 500 } },
     ),
   );
 }
@@ -53,8 +56,9 @@ function factory(): ComponentNode<"launchKit"> {
         ),
         part(
           "craft",
-          { x: 352, y: 16, w: 96, h: 96 },
-          { craftId: "reaper", roleColor: "ink", headingDeg: 48 },
+          // X47C native ratio ≈ 248∶153 — keep the box on it so the planform fills.
+          { x: 352, y: 16, w: 96, h: Math.round((96 * 153) / 248) },
+          { craftId: "x47c", roleColor: "ink", headingDeg: 48 },
           { name: "Ownship", animation: { behavior: "fadeIn", delayMs: 400, durationMs: 700 } },
         ),
         part(
@@ -79,7 +83,7 @@ function factory(): ComponentNode<"launchKit"> {
           { value: 62, label: "RANGE", showValue: false, segments: 22, barHeight: 8 },
           { name: "Range Bar", animation: { behavior: "drawOn", delayMs: 800, durationMs: 1400 } },
         ),
-        ...wasps(4),
+        ...formation(4),
       ],
     },
   );
@@ -102,7 +106,7 @@ defineComponent({
   label: "Launch Kit",
   category: "composites",
   tags: ["craft", "hud", "composite"],
-  describe: "Launch/flight kit: trajectory arc, ownship craft, coordinate readout and wasp formation.",
+  describe: "Launch/flight kit: trajectory arc, ownship craft, coordinate readout and nEUROn formation.",
   factory,
   Render,
   controls: [{ kind: "toggle", key: "groundLine", label: "Horizon rule" }],
