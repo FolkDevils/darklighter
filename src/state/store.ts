@@ -24,7 +24,7 @@ import type {
   StyleConfig,
 } from "@/components-model/types";
 import type { DarklighterActions, DarklighterState, SnapshotEntry } from "@/state/contract";
-import { componentDef } from "@/components-model/registry";
+import { componentDef, fitToAspect, nativeAspect } from "@/components-model/registry";
 import {
   childIndexPath,
   isPromoted,
@@ -162,17 +162,26 @@ export function hydrateNode(n: ComponentNode): ComponentNode {
  * is all it takes — and stroke widths deliberately stay put (PLAN.md §5.1:
  * "parent transforms don't distort child stroke widths"); `style.strokeScale`
  * is the control for that.
+ *
+ * Fixed-aspect art is the exception: it takes the smaller factor uniformly and
+ * sits centred in the space it would otherwise have filled, so squashing a
+ * group can never squash a mark inside it.
  */
 function scaleSubtree(node: ComponentNode, fx: number, fy: number): ComponentNode {
   const round = (v: number) => Math.round(v * 100) / 100;
+  const { x, y, w, h } = node.layout;
+  const aspect = nativeAspect(node);
+  const [sx, sy] = aspect === null ? [fx, fy] : [Math.min(fx, fy), Math.min(fx, fy)];
+  const nw = Math.max(1, round(w * sx));
+  const nh = Math.max(1, round(h * sy));
   return {
     ...node,
     layout: {
       ...node.layout,
-      x: round(node.layout.x * fx),
-      y: round(node.layout.y * fy),
-      w: Math.max(1, round(node.layout.w * fx)),
-      h: Math.max(1, round(node.layout.h * fy)),
+      x: round(x * fx + (w * fx - nw) / 2),
+      y: round(y * fy + (h * fy - nh) / 2),
+      w: nw,
+      h: nh,
     },
     children: node.children.map((c) => scaleSubtree(c, fx, fy)),
   };
@@ -694,7 +703,16 @@ export const useDarklighter = create<DarklighterStoreState>((set, get) => {
     patchLayout: (id, patch) =>
       withHistory((s) => ({
         nodes: patchNode(s.nodes, id, (n) => {
-          const layout = { ...n.layout, ...patch };
+          let layout = { ...n.layout, ...patch };
+          // Fixed art can't restate itself at a new ratio, so the box is held
+          // on the ratio instead of letting the art letterbox inside it
+          // (registry.nativeAspect). Whichever edge the user actually moved
+          // leads; when a corner moves both, width leads.
+          const aspect = nativeAspect(n);
+          if (aspect !== null && (layout.w !== n.layout.w || layout.h !== n.layout.h)) {
+            const drive = layout.w !== n.layout.w ? "w" : "h";
+            layout = { ...layout, ...fitToAspect(layout.w, layout.h, aspect, drive) };
+          }
           // Resizing a container resizes what's in it. A group's box IS the
           // frame of its parts, so leaving children at fixed coordinates would
           // make width/height a dead control on every scene and lockup.
@@ -707,7 +725,18 @@ export const useDarklighter = create<DarklighterStoreState>((set, get) => {
       })),
 
     patchProps: (id, patch) =>
-      withHistory((s) => ({ nodes: patchNode(s.nodes, id, (n) => ({ ...n, props: { ...n.props, ...patch } })) })),
+      withHistory((s) => ({
+        nodes: patchNode(s.nodes, id, (n) => {
+          const next = { ...n, props: { ...n.props, ...patch } };
+          // A prop can change the art's shape (staticAsset's `assetId`), so the
+          // box follows it — otherwise swapping a 7:1 wordmark for a square
+          // silhouette strands the new art in the old frame.
+          const aspect = nativeAspect(next);
+          return aspect === null || aspect === nativeAspect(n)
+            ? next
+            : { ...next, layout: { ...next.layout, ...fitToAspect(next.layout.w, next.layout.h, aspect, "w") } };
+        }),
+      })),
 
     patchStyle: (id, patch) =>
       withHistory((s) => ({ nodes: patchNode(s.nodes, id, (n) => ({ ...n, style: { ...n.style, ...patch } })) })),

@@ -81,6 +81,21 @@ export interface ComponentDef<K extends ComponentKind = ComponentKind> {
    * ⌘G grouping)? Composites: true. Leaf primitives: false.
    */
   acceptsChildren: boolean;
+  /**
+   * Native width÷height for kinds that draw into a FIXED viewBox instead of
+   * deriving one from `node.layout` — the fixed art (docs/NORTH_STAR.md).
+   *
+   * Generated parts restate their geometry at whatever box they are given, so
+   * they fill it at any ratio. Fixed art can't: it fits with `xMidYMid meet`,
+   * so an off-ratio box letterboxes the art while the box — what handles,
+   * group bounds and export all measure — stays full size. Declaring the ratio
+   * lets the store keep the box ON it, which is also the right answer on
+   * brand grounds: a squashed mark is off-brand, not merely mis-measured.
+   *
+   * A function because it can depend on props (`staticAsset` per `assetId`).
+   * Return null to opt a particular node out.
+   */
+  aspectOf?: (node: ComponentNode<K>) => number | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -111,6 +126,31 @@ export const allComponentDefs = (): ComponentDef[] => [...REGISTRY.values()];
 /** Kinds whose tags intersect `accepts` — the slot-replacement candidates. */
 export const kindsForSlot = (accepts: ComponentTag[]): ComponentDef[] =>
   allComponentDefs().filter((d) => d.tags.some((t) => accepts.includes(t)));
+
+/**
+ * This node's locked width÷height, or null if it may take any shape. Tolerates
+ * unknown kinds so a file from a newer build still loads.
+ */
+export function nativeAspect(node: ComponentNode): number | null {
+  let a: number | null | undefined;
+  try {
+    a = componentDef(node.kind).aspectOf?.(node);
+  } catch {
+    return null;
+  }
+  return a != null && Number.isFinite(a) && a > 0 ? a : null;
+}
+
+/** `w`×`h` corrected onto `aspect`, driven by whichever edge the user moved. */
+export function fitToAspect(
+  w: number,
+  h: number,
+  aspect: number,
+  drive: "w" | "h" = "w",
+): { w: number; h: number } {
+  const round = (v: number) => Math.max(1, Math.round(v * 100) / 100);
+  return drive === "h" ? { w: round(h * aspect), h: round(h) } : { w: round(w), h: round(w / aspect) };
+}
 
 /* ------------------------------------------------------------------ */
 /* Phase-1 registration order (implement in this order; PLAN.md §5.2)   */

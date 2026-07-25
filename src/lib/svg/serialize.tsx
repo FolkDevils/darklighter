@@ -9,9 +9,10 @@
  * absolutely-positioned `<div>`s (so parent transforms never distort child
  * stroke widths — PLAN.md §5.1), so the DOM for a group is HTML with several
  * sibling `<svg>`s inside it. Cloning that yields markup no other tool can
- * open. `src/lib/flattenSvg.tsx` already re-composes a subtree with nested
- * `<svg>` viewports, so export renders THAT through React and gets one clean
- * document for a part, a group or the whole canvas alike.
+ * open. `src/lib/flattenSvg.tsx` already re-composes a subtree as one group
+ * tree, so export renders THAT through React and gets one clean document for a
+ * part, a group or the whole canvas alike — with a single `<svg>` at the root
+ * and `<g transform>` the whole way down, which is what Figma can read.
  *
  * The WYSIWYG guarantee is kept by construction rather than by inspection:
  * flatten and canvas call the same `def.Render` and the same

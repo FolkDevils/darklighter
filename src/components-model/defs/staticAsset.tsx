@@ -111,5 +111,11 @@ defineComponent({
     },
   ],
   animBehaviors: [...ASSET_BEHAVIORS],
+  // Imported art keeps the ratio it was drawn at — and it varies per asset, so
+  // switching `assetId` re-locks the box to the new one.
+  aspectOf: (node) => {
+    const asset = brandAsset(node.props.assetId);
+    return asset ? asset.viewBox.w / asset.viewBox.h : null;
+  },
   acceptsChildren: false,
 });

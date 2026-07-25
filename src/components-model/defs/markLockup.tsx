@@ -30,6 +30,8 @@ declare module "@/components-model/types" {
 
 const W = 720;
 const H = 260;
+/** The hero variant is taller: the fan behind the type needs the room. */
+const HERO_H = 300;
 /** protoraWordmark's native aspect (1489×203), scaled into the lockup. */
 const WORDMARK = { w: 470, h: 64 };
 
@@ -150,6 +152,10 @@ defineComponent({
   Render: EMPTY,
   controls: [],
   animBehaviors: [],
+  // A lockup is a fixed relationship between type and mark. Its own frame
+  // draws nothing, but the wordmark inside is imported art — reflowing the box
+  // would slide the type off the radar even though nothing looked squashed.
+  aspectOf: () => W / H,
   acceptsChildren: true,
 });
 
@@ -164,10 +170,11 @@ defineComponent({
       "heroLockup",
       "Hero Lockup",
       {},
-      { layout: { w: W, h: 300 }, animation: { cascade: true, staggerMs: 70 }, children: radarBehindChildren() },
+      { layout: { w: W, h: HERO_H }, animation: { cascade: true, staggerMs: 70 }, children: radarBehindChildren() },
     ),
   Render: EMPTY,
   controls: [],
   animBehaviors: [],
+  aspectOf: () => W / HERO_H,
   acceptsChildren: true,
 });

@@ -13,7 +13,7 @@
  */
 import { Rnd } from "react-rnd";
 import type { ComponentNode } from "@/components-model/types";
-import { componentDef } from "@/components-model/registry";
+import { componentDef, nativeAspect } from "@/components-model/registry";
 import { findNode, nodeChain } from "@/lib/nodeTree";
 import { useDarklighter } from "@/state/store";
 
@@ -98,6 +98,7 @@ export function ChildHandle({ nodeId, scale }: { nodeId: string; scale: number }
       position={offset}
       disableDragging={!movable}
       enableResizing={movable ? CORNERS : false}
+      lockAspectRatio={nativeAspect(node) ?? false}
       resizeHandleWrapperStyle={{ zIndex: 4 }}
       style={{ zIndex: 3, cursor: movable ? "move" : "default" }}
       onMouseDown={(e) => e.stopPropagation()}

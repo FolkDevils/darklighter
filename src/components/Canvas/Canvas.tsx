@@ -60,8 +60,7 @@ export function Canvas() {
     // The page colour runs edge to edge rather than sitting in a card: you are
     // judging a graphic against its background, and a light rectangle floating
     // in a dark room tells you nothing about how it will actually look. The
-    // artboard is still marked, just by an outline instead of by a colour
-    // change, so canvas-scope export stays predictable.
+    // artboard's own edge is deliberately undrawn — see Canvas.css.
     <div className={`canvas-viewport${onDark ? " on-dark" : ""}`} ref={ref} style={{ background: bg }}>
       <div
         className="canvas-stage"

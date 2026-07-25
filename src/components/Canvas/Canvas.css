@@ -11,16 +11,13 @@
   overflow: hidden;
 }
 
-/* The artboard: transparent, so it shows the page colour, and marked only by a
-   hairline. That boundary still matters — canvas-scope export frames to it. */
+/* The artboard is unmarked. It still sizes canvas-scope export and centres new
+   nodes (CANVAS_W/H in lib/constants.ts), but drawing its edge put a permanent
+   box around work that is almost always exported per-node, cropped to its own
+   bounds. The export panel states the output size when that scope is chosen. */
 .canvas-stage {
   position: relative;
   flex: 0 0 auto;
-  outline: 1px dashed rgba(51, 0, 0, 0.22);
-  outline-offset: 0;
-}
-.canvas-viewport.on-dark .canvas-stage {
-  outline-color: rgba(242, 240, 229, 0.22);
 }
 
 .canvas-empty-note {

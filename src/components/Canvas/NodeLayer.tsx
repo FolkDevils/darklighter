@@ -4,6 +4,7 @@ import { Rnd } from "react-rnd";
 import type { ComponentNode } from "@/components-model/types";
 import type { Surface } from "@/lib/colorway";
 import { RenderNode } from "@/components-model/RenderNode";
+import { nativeAspect } from "@/components-model/registry";
 import { findNode } from "@/lib/nodeTree";
 import { useDarklighter } from "@/state/store";
 import { ChildHandle } from "./ChildHandle";
@@ -83,6 +84,9 @@ export function NodeLayer({ node, scale, selected, deepSelectedId, animate, surf
       position={{ x: node.layout.x, y: node.layout.y }}
       disableDragging={node.locked || inside}
       enableResizing={showChrome && !node.locked && !inside ? CORNER_RESIZE : false}
+      // Fixed art resizes uniformly or not at all, so the handle matches what
+      // the store will allow instead of snapping back after the drag.
+      lockAspectRatio={nativeAspect(node) ?? false}
       resizeHandleWrapperStyle={{ zIndex: 3 }}
       onMouseDown={(e) => {
         e.stopPropagation();

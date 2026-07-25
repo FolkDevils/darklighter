@@ -187,6 +187,9 @@ defineComponent({
     },
   ],
   animBehaviors: [...LOGO_BEHAVIORS],
+  // Fixed art: Render fits P_SHELL_PATH into LOGO_P_VIEWBOX, so an off-ratio
+  // box would letterbox the mark rather than fill.
+  aspectOf: () => LOGO_P_VIEWBOX.w / LOGO_P_VIEWBOX.h,
   slots: [
     {
       name: "radarFill",

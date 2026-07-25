@@ -47,5 +47,10 @@ const PLACED_MAX_EDGE = 420;
 export function assetPlacementSize(asset: BrandAsset): { w: number; h: number } {
   const { w, h } = asset.viewBox;
   const scale = Math.min(PLACED_MAX_EDGE / Math.max(w, h), 1);
-  return { w: Math.round(w * scale), h: Math.round(h * scale) };
+  // Only one edge is rounded to a whole pixel; the other is derived from it, so
+  // the placed box sits on the asset's exact ratio. Rounding both independently
+  // left a fraction of a percent of error, which `xMidYMid meet` then pays for
+  // by letterboxing the art the moment it is placed.
+  const pw = Math.max(1, Math.round(w * scale));
+  return { w: pw, h: Math.max(1, Math.round((pw * h) / w * 100) / 100) };
 }

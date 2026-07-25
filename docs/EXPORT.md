@@ -13,9 +13,18 @@ tree is composed with nested absolutely-positioned `<div>`s so parent transforms
 never distort child stroke widths (PLAN.md §5.1). Cloning a group's DOM would
 hand you HTML with sibling `<svg>`s inside — markup no other tool opens.
 
-So `src/lib/flattenSvg.tsx` re-composes any subtree using nested `<svg>`
-viewports, and export renders that through `renderToStaticMarkup`. One clean
-document, whether the target is one part, a group, a scene, or the whole canvas.
+So `src/lib/flattenSvg.tsx` re-composes any subtree as one group tree, and
+export renders that through `renderToStaticMarkup`. One clean document, whether
+the target is one part, a group, a scene, or the whole canvas.
+
+**Composition is `<g transform>`, never a nested `<svg>`.** A nested viewport is
+the natural translation of a positioned div and browsers render it correctly,
+but Figma's importer does not implement nested viewports: it discards the inner
+`viewBox` scale and clips to the frame, so pasted marks arrived cropped and
+undersized — worst on the fixed art, whose renderers draw into a native viewBox
+much larger than their box. `flattenSvg` now resolves x/y, `viewBox` and
+`preserveAspectRatio` into an explicit transform itself, including inside a
+component's own render output, so nothing but the root element is an `<svg>`.
 
 WYSIWYG is guaranteed **by construction, not by inspection**: flatten and canvas
 call the same `def.Render` and the same `resolveAnimation`. Static export is
@@ -26,7 +35,7 @@ because base attributes already equal the finished frame (invariant #4).
 
 | Path | Role |
 | --- | --- |
-| `src/lib/flattenSvg.tsx` | Tree → pure nested-`<svg>` React tree. The serialization source of truth. |
+| `src/lib/flattenSvg.tsx` | Tree → one pure-SVG group tree. The serialization source of truth. |
 | `src/lib/svg/serialize.tsx` | React tree → SVG string. Root frame, background, `xmlns`, XML declaration, rotated-bounds framing. |
 | `src/lib/svg/download.ts` | Blobs out: file downloads, rich multi-MIME clipboard, `slugify`. Ported from the reference. |
 | `src/lib/svg/export.ts` | What the UI calls: targets, filenames, PNG rasterizing, `.dkl.json` build/parse/pick. |
