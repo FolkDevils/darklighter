@@ -74,7 +74,9 @@ Ported from the reference app, and the bar for "done":
 - [x] ControlSpec-driven inspector — declare `controls`, get real sliders,
       toggles, selects, color pickers, groups and conditional visibility.
 - [x] Geometry / Style / Animation sections on every node for free.
-- [ ] SMIL animation with resting-frame-first + global play/pause/replay.
-- [ ] Composites that match the reference scenes.
+- [x] SMIL animation with resting-frame-first + global play/pause/replay.
+- [x] Composites that match the reference scenes.
+- [x] Export + copy: animated SVG, static SVG, PNG, `.dkl.json` — for a part, a group, a
+      scene or the canvas (`docs/EXPORT.md`).
 - [ ] Variations: n-up seed/colorway picker.
-- [ ] Export: animated SVG, static SVG, PNG.
+- [ ] Presets with protected bases and "return to approved".

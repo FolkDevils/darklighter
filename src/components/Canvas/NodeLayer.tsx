@@ -1,9 +1,8 @@
 import "./NodeLayer.css";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 import type { ComponentNode } from "@/components-model/types";
 import { RenderNode } from "@/components-model/RenderNode";
-import { registerSvg } from "@/lib/svgRegistry";
 import { findNode } from "@/lib/nodeTree";
 import { useDarklighter } from "@/state/store";
 import { ChildHandle } from "./ChildHandle";
@@ -70,14 +69,6 @@ export function NodeLayer({ node, scale, selected, deepSelectedId, animate }: Pr
   const [hovered, setHovered] = useState(false);
   const [interacting, setInteracting] = useState(false);
   const showChrome = selected && (hovered || interacting);
-
-  // Keep the export registry (Phase 6) pointed at the live <svg> element;
-  // re-find it whenever the rendered markup could have been replaced.
-  useLayoutEffect(() => {
-    const svg = wrapRef.current?.querySelector("svg") as SVGSVGElement | null;
-    registerSvg(node.id, svg);
-    return () => registerSvg(node.id, null);
-  }, [node.id, node.children.length, node.props]);
 
   if (node.hidden) return null;
 

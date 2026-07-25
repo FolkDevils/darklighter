@@ -6,11 +6,12 @@
  *
  * ⌘Z/⇧⌘Z undo · ⌘D duplicate · ⌘G group · ⇧⌘G ungroup · ⌫ delete ·
  * arrows nudge (⇧ = ×10) · Space play/pause · R replay ·
- * ↩ step into a group · esc step back out
+ * ↩ step into a group · esc step back out · ⇧⌘C copy the selection as SVG
  */
 import { useEffect } from "react";
 import { useDarklighter } from "@/state/store";
 import { findNode } from "@/lib/nodeTree";
+import { copySvgMarkup } from "@/lib/svg/export";
 
 const NUDGE = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as const;
 
@@ -34,6 +35,16 @@ export function useKeyboardShortcuts() {
       if (meta && key === "d" && selectedId) {
         e.preventDefault();
         s.duplicateNode(selectedId);
+        return;
+      }
+      // Copy what you're looking at: animated while playing, the resting frame
+      // while paused. Explicit animated/static buttons live in the Export panel.
+      if (meta && e.shiftKey && key === "c" && selectedId) {
+        const node = findNode(s.nodes, selectedId)?.node;
+        if (node) {
+          e.preventDefault();
+          void copySvgMarkup({ scope: "node", node }, { animated: s.playing });
+        }
         return;
       }
       if (meta && key === "g" && selectedId) {

@@ -73,8 +73,11 @@ const HISTORY_CAP = 100;
  * Kind-specific default *values* (e.g. a ringSet's default count) are not
  * re-derived here — that's each kind's `factory()`, which only runs for
  * brand-new nodes. This just guarantees shape, not on-brand defaults.
+ *
+ * Exported so the `.dkl.json` round-trip check in `npm run smoke` hydrates a
+ * loaded document exactly the way `loadDoc` does.
  */
-function hydrateNode(n: ComponentNode): ComponentNode {
+export function hydrateNode(n: ComponentNode): ComponentNode {
   // Cast to Partial: incoming data is untrusted JSON (old/hand-edited files),
   // even though ComponentNode's own type says these fields are required.
   const style = (n.style ?? {}) as Partial<StyleConfig>;

@@ -9,11 +9,16 @@
  * system matches the div box it occupies on canvas, so the flattened output
  * is geometrically identical to what the user sees.
  *
- * Used by scripts/preview.tsx today and by the Phase 6 export pipeline.
+ * This is the serialization source of truth: `src/lib/svg/serialize.ts` (export,
+ * copy) and `scripts/preview.tsx` both go through it. It deliberately shares
+ * `def.Render` and `resolveAnimation` with `RenderNode`, so the only difference
+ * between what the canvas shows and what a file contains is div-vs-`<svg>`
+ * composition — which is geometrically identical by construction.
  */
 import type { ReactElement } from "react";
 import type { ComponentNode } from "@/components-model/types";
 import { componentDef } from "@/components-model/registry";
+import { resolveAnimation } from "@/components-model/animResolve";
 import { resolveColor } from "@/lib/colorway";
 
 export function flattenNode(
@@ -26,12 +31,7 @@ export function flattenNode(
   const def = componentDef(node.kind);
   const color = (role: Parameters<typeof resolveColor>[1]) => resolveColor(node.style, role);
 
-  const effective =
-    !node.animation.enabled && inherited
-      ? { ...inherited, delayMs: inherited.delayMs + node.animation.delayMs, behavior: node.animation.behavior }
-      : node.animation;
-  const running = animate && (node.animation.enabled || Boolean(inherited));
-  const passDown = effective.cascade && running ? effective : null;
+  const { effective, running, passDown } = resolveAnimation(node.animation, inherited, animate);
 
   const { x, y, w, h, rotation } = node.layout;
   const body = (

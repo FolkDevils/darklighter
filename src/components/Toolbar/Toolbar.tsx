@@ -1,10 +1,12 @@
 import "./Toolbar.css";
 import { useDarklighter } from "@/state/store";
+import { ExportMenu } from "@/components/Export/ExportMenu";
+import { pickDoc } from "@/lib/svg/export";
 
 /**
- * Toolbar: background swap (Phase 0) + Add/Undo/Redo/Replay wired against
- * the Phase 1 store. Export menu, history panel toggle, and AI panel
- * toggle stay disabled placeholders until their phases land (§6/§11).
+ * Toolbar: background swap, Add/Undo/Redo, transport (Play/Replay), and the
+ * export popover (§9). History panel and AI panel toggles stay placeholders
+ * until their phases land (§11).
  */
 export function Toolbar() {
   const background = useDarklighter((s) => s.background);
@@ -17,6 +19,7 @@ export function Toolbar() {
   const setPlaying = useDarklighter((s) => s.setPlaying);
   const historyPast = useDarklighter((s) => s.historyPast);
   const historyFuture = useDarklighter((s) => s.historyFuture);
+  const loadDoc = useDarklighter((s) => s.loadDoc);
 
   const isDark = background.color === "burntDroneBrown";
 
@@ -51,9 +54,17 @@ export function Toolbar() {
       <button className="btn" title="Restart all animation" onClick={replay}>
         Replay
       </button>
-      <button className="btn" disabled title="Phase 6 — export pipeline">
-        Export
+      <button
+        className="btn ghost"
+        title="Open a .dkl.json document (replaces the canvas)"
+        onClick={async () => {
+          const doc = await pickDoc();
+          if (doc) loadDoc(doc);
+        }}
+      >
+        Open
       </button>
+      <ExportMenu />
     </div>
   );
 }

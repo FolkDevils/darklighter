@@ -307,19 +307,22 @@ Port Helix's SMIL approach wholesale — it's what makes animated *and* static e
 
 ---
 
-## 9. Export
+## 9. Export — **BUILT (Phase 6). Details: `docs/EXPORT.md`.**
 
-Port + adapt Helix's pipeline (`serialize.ts`, `exportScene.ts`, `download.ts`, `svgRegistry.ts`):
+Ported + adapted from Helix's pipeline, with one structural deviation: Darklighter serializes **the model, not the canvas DOM**. Helix's `svgRegistry`/`cloneNode` approach can't work here because `RenderNode` composes the tree with nested `<div>`s (§5.1), so a group's DOM isn't valid SVG; `src/lib/flattenSvg.tsx` re-composes any subtree with nested `<svg>` viewports instead and that is what gets serialized. `svgRegistry.ts` was therefore deleted rather than wired up (logged in `docs/DECISIONS.md`).
 
-| Output | Mechanism |
-| --- | --- |
-| Static SVG | Serialize rendered node, strip SMIL nodes |
-| Animated SVG | Serialize with SMIL intact (replays on open in browser) |
-| Copy SVG markup | Clipboard write of the same serialization |
-| Transparent PNG / hi-res PNG | Render SVG → canvas rasterize at 1×/2×/4× (client-side; `@resvg/resvg-js` server-side later if quality demands) |
-| Config JSON | The node subtree as `.dkl.json` (reopens in Darklighter) |
+| Output | Mechanism | Status |
+| --- | --- | --- |
+| Static SVG | Serialize with `animate: false` — the paused frame, no strip pass needed (invariant #4) | ✅ |
+| Animated SVG | Serialize with SMIL intact (replays on open in a browser) | ✅ |
+| Copy SVG markup | Rich clipboard write: `image/svg+xml` + `text/html` + `text/plain`, with WebKit fallbacks | ✅ |
+| Transparent PNG / hi-res PNG | SVG → `<img>` → canvas at 1×/2×/4×, clamped to Safari's 16M px ceiling; copy-as-pixels too | ✅ |
+| Config JSON | The node subtree as `.dkl.json`, plus **Open** to load one back | ✅ |
+| Video / GIF | Would need a headless browser or frame rasterizer | ✗ not planned for v1 |
 
-Scope: selected node, selected composite, or whole canvas. Note in the export dialog: SMIL doesn't survive Figma import — offer “Static (Figma)” and “Animated (web)” side by side.
+Scope is **a node** (part, group or scene — all one thing in a tree) or **the whole canvas**, chosen in the toolbar popover; the inspector's Export section is the same component bound to the selection. ⇧⌘C copies the selection as SVG. Static and Animated sit side by side because SMIL doesn't survive a Figma paste — that choice belongs to the user at export time, not in a preference.
+
+`npm run smoke` asserts every kind serializes, static output contains zero SMIL, no HTML leaks into a file, and a `.dkl.json` round-trip reproduces byte-identical markup. `npm run shots` writes `.preview/*.svg` **through the real export pipeline**, so previews double as export tests.
 
 ---
 
@@ -380,9 +383,9 @@ Port AnimatedPath/Marker; implement per-kind SMIL behaviors (§7); AnimationSect
 `.dkl.json` save/load; shipped protected presets (logoP approved, radarScope classic, markLockup); protected-fork behavior + “Return to approved base”; snapshot history panel with branch/favorite/reject/notes/compare; deterministic `generateVariations` + n-up picker.
 ✅ Accept: edit logoP → branch created automatically, original restorable; generate 12 seed/colorway variations of radarScope and pick one; history survives reload (localStorage).
 
-### Phase 6 — Export (M)
-Port serialize/exportScene/download; static + animated SVG, copy-markup, PNG at 1×/2×/4× with transparency, config JSON; export scopes (node/composite/canvas); Figma note in dialog.
-✅ Accept: animated radarScope SVG replays when opened in a browser; static export opens clean in Figma-compatible form; exported `.dkl.json` reopens identically (determinism check: export → reimport → identical serialization).
+### Phase 6 — Export (M) — **DONE** (see §9 and `docs/EXPORT.md`)
+Static + animated SVG, copy-markup, PNG at 1×/2×/4× with transparency, `.dkl.json` out and back in; scopes node/group/scene/canvas; ⇧⌘C.
+✅ Accept: static export renders correctly outside the app (verified with QuickLook on `.preview/*.svg`, mask and all); `.dkl.json` round-trip is byte-identical in `npm run smoke`. Remaining eyeball for a human: an animated SVG replaying in a browser and a static one pasted into Figma.
 
 ### Phase 7 — AI foundation (L)
 **The patch schema + freedom modes already exist as a contract (`src/lib/ai/patchSchema.ts`, §5.3) — implement the executor against it, including its 6 header rules.** Build: manifest, executor + describeOps, context builder, sidecar (`server/`) with brain modes + recipe storage, Assistant panel shell with **mock turns** (canned `PatchTurn`s prove the pipeline), cost-control UI, `docs/EXTENDING.md`.

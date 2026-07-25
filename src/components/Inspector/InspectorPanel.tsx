@@ -12,6 +12,7 @@ import { GeometrySection } from "./GeometrySection";
 import { StyleSection } from "./StyleSection";
 import { AnimationSection } from "./AnimationSection";
 import { SlotsSection } from "./SlotsSection";
+import { ExportActions } from "@/components/Export/ExportActions";
 
 /**
  * Properties panel for the selected node (PLAN.md §6). Every section here is
@@ -146,6 +147,10 @@ export function InspectorPanel() {
           <AnimationSection node={node} />
         </Section>
       )}
+
+      <Section title="Export" defaultOpen={false} badge={partCount > 0 ? "group" : "part"}>
+        <ExportActions target={{ scope: "node", node }} />
+      </Section>
 
       {(usage.usesSeed || def.controls.length > 0) && (
         <Section title="Advanced" defaultOpen={false}>

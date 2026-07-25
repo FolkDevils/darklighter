@@ -12,6 +12,9 @@ import "@/components-model/defs";
 import type { ComponentNode } from "@/components-model/types";
 import { allComponentDefs, componentDef } from "@/components-model/registry";
 import { RenderNode } from "@/components-model/RenderNode";
+import { serializeCanvas, serializeNode } from "@/lib/svg/serialize";
+import { buildDoc, docJson, parseDoc } from "@/lib/svg/export";
+import { hydrateNode } from "@/state/store";
 
 const warnings: string[] = [];
 const origError = console.error;
@@ -138,6 +141,54 @@ for (const kind of ["craft", "targetGlyph"] as const) {
     `${kind} can drift too (shared motion helpers)`,
     /<animateMotion/.test(markup(asBehavior(componentDef(kind).factory(), "drift"))),
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Export pipeline (PLAN.md §9 / docs/EXPORT.md): every kind must      */
+/* serialize to a standalone document, static must carry no SMIL, and  */
+/* a .dkl.json round-trip must reproduce byte-identical markup.        */
+/* ------------------------------------------------------------------ */
+
+for (const def of allComponentDefs()) {
+  const node = def.factory();
+  const still = serializeNode(node, { animated: false, declaration: true, padding: 24 });
+  const moving = serializeNode(node, { animated: true, padding: 24 });
+
+  check(`${def.kind}: static export carries no animation`, !/<animate|<set\b/.test(still));
+  check(
+    `${def.kind}: export is a standalone SVG document`,
+    still.startsWith('<?xml version="1.0" encoding="UTF-8"?>') &&
+      /<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 [\d.]+ [\d.]+" width="[\d.]+" height="[\d.]+"/.test(
+        still.slice(still.indexOf("<svg")),
+      ),
+  );
+  check(
+    `${def.kind}: no HTML leaks into the file`,
+    !/<div|<foreignObject|data-node-id/.test(still) && !/<div|<foreignObject/.test(moving),
+  );
+  if (def.animBehaviors.length > 0) {
+    check(`${def.kind}: animated export keeps its SMIL`, /<animate/.test(moving));
+  }
+}
+
+{
+  const canvasNodes = [componentDef("radarScope").factory(), componentDef("logoP").factory()];
+  const canvas = serializeCanvas(canvasNodes, { animated: true, background: "burntDroneBrown" });
+  check("canvas export frames the full stage", /viewBox="0 0 1600 1200"/.test(canvas));
+  check("canvas export paints the background token as a hex", /<rect x="0" y="0".*fill="#/.test(canvas));
+
+  // The determinism check from PLAN.md §11 Phase 6: export → reopen → identical.
+  const target = { scope: "canvas" as const, nodes: canvasNodes, name: "canvas" };
+  const doc = buildDoc(target, { color: "blimpWhite" });
+  const reopened = parseDoc(docJson(doc));
+  check(".dkl.json parses back", reopened !== null);
+  check(
+    ".dkl.json round-trips to identical markup",
+    reopened !== null &&
+      serializeCanvas(reopened.nodes.map(hydrateNode), { animated: true, background: "burntDroneBrown" }) ===
+        canvas,
+  );
+  check("a foreign file is rejected", parseDoc('{"format":"sketch","nodes":[]}') === null);
 }
 
 if (warnings.length) {
