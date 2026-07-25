@@ -1,0 +1,53 @@
+/* Design tokens for the Darklighter app chrome (the studio UI, not the
+   exported Protora graphics). Dark, quiet, technical — Burnt Drone Brown
+   undertones with a Red Alert accent — so the work on the canvas (which
+   defaults to Blimp White) is what draws the eye. Adapted from the
+   reference app's token set (PLAN.md §4 "ADAPT" — reskin pass). */
+:root {
+  /* Surfaces */
+  --bg-app: #0a0605;
+  --bg-panel: #140908;
+  --bg-panel-raised: #1b0d0b;
+  --bg-elevated: #1f0f0d;
+  --bg-input: #100807;
+  --bg-hover: #24120f;
+  --bg-active: #2c1613;
+
+  /* Lines / borders */
+  --border-subtle: #2a1512;
+  --border-strong: #3c1e19;
+
+  /* Text */
+  --text-primary: #f0eedf; /* Blimp White */
+  --text-secondary: #c7c2b2;
+  --text-muted: #7a7568;
+
+  /* UI chrome accent — buttons, toggles, sliders (not canvas graphics). */
+  --ui-accent: #fe3b1f; /* Red Alert */
+  --ui-accent-deep: #a81127;
+  --ui-accent-hover: #ff5a3d;
+  --ui-accent-muted: #ff9c88;
+  --ui-accent-soft: rgba(254, 59, 31, 0.14);
+  --ui-accent-soft-border: rgba(254, 59, 31, 0.32);
+  --ui-accent-contrast: #f0eedf;
+
+  /* Functional */
+  --danger: #ff6b6b;
+  --selection: #fe3b1f;
+
+  /* Geometry */
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+
+  /* Typography */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Menlo, monospace;
+
+  /* Elevation */
+  --shadow-panel: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 8px 30px rgba(0, 0, 0, 0.6);
+
+  /* Layout */
+  --toolbar-h: 52px;
+}

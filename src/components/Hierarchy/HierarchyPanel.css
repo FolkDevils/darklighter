@@ -1,0 +1,94 @@
+.hierarchy-panel {
+  padding: 8px 6px;
+}
+.hierarchy-empty {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.hierarchy-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.hierarchy-row:hover {
+  background: var(--bg-hover);
+}
+.hierarchy-row.selected {
+  background: var(--ui-accent-soft);
+  border: 1px solid var(--ui-accent-soft-border);
+}
+/* Ancestors of the selection: the scene you're currently inside. */
+.hierarchy-row.on-path {
+  background: var(--bg-hover);
+}
+.hierarchy-row.on-path .hierarchy-name {
+  color: var(--text-secondary);
+}
+.hierarchy-name {
+  flex: 1;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hierarchy-kind {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+.hierarchy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 2px 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.hierarchy-actions .btn {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+.hierarchy-slot {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ui-accent, var(--text-muted));
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+.hierarchy-anim {
+  color: var(--ui-accent, var(--text-muted));
+  font-size: 10px;
+}
+/* Hollow marker = moving on a parent's timing rather than its own. */
+.hierarchy-anim.inherited {
+  opacity: 0.6;
+}
+.hierarchy-btn {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.hierarchy-btn:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+.hierarchy-hint {
+  margin: 10px 2px 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}

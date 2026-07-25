@@ -1,0 +1,90 @@
+.fwin {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100% - 24px);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 10px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 18px 50px -16px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+  animation: fwin-in 0.14s ease;
+}
+@keyframes fwin-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+}
+.fwin-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px 9px 12px;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent);
+}
+.fwin-icon {
+  display: inline-flex;
+  width: 15px;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.fwin-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fwin-x {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.fwin-x:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.fwin-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Bottom-right resize grip. */
+.fwin-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 5;
+  background: linear-gradient(
+    135deg,
+    transparent 0 50%,
+    var(--border-strong) 50% 60%,
+    transparent 60% 72%,
+    var(--border-strong) 72% 82%,
+    transparent 82%
+  );
+}

@@ -1,0 +1,30 @@
+.canvas-viewport {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-app);
+  background-image: radial-gradient(circle, var(--border-subtle) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.canvas-stage {
+  position: relative;
+  flex: 0 0 auto;
+  box-shadow: var(--shadow-panel);
+  border: 1px solid var(--border-subtle);
+}
+.canvas-empty-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  color: #330000; /* Burnt Drone Brown — legible on the default Blimp White stage */
+  opacity: 0.35;
+}

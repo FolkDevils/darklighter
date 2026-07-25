@@ -1,0 +1,136 @@
+.library-panel {
+  padding: 12px 12px 18px;
+}
+
+.library-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.library-tabs .chip {
+  flex: 1;
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.library-tabs .chip:hover {
+  color: var(--text-primary);
+}
+.library-tabs .chip.on {
+  border-color: var(--selection);
+  color: var(--text-primary);
+  background: rgba(254, 59, 31, 0.1);
+}
+
+.library-search {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.library-target {
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.library-target strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.library-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.library-group {
+  margin-bottom: 18px;
+}
+.library-group-label {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.library-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+.library-card:hover {
+  border-color: var(--selection);
+  transform: translateY(-1px);
+}
+.library-card-label {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+/* Live preview box: the asset's own viewBox letterboxes it into the card. */
+.lib-thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--blimp-white, #f0eedf);
+  content-visibility: auto;
+  contain-intrinsic-size: 120px 90px;
+}
+.lib-thumb-box {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Rendered at natural size and scaled visually, so nested children keep
+   their coordinates (see Thumbnail.tsx). */
+.lib-thumb-inner {
+  position: absolute;
+  transform-origin: center;
+  flex: none;
+}
+.lib-thumb-inner > div {
+  width: 100%;
+  height: 100%;
+}
+.lib-thumb-skel {
+  width: 60%;
+  height: 40%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0.05));
+  animation: lib-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes lib-shimmer {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}

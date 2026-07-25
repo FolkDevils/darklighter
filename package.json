@@ -1,0 +1,38 @@
+{
+  "name": "darklighter",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Darklighter — a modular brand-graphics engine for the Protora radar/tactical-HUD visual language. Every graphic is a tree of reusable, nestable, animatable SVG components.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "assets": "node scripts/importAssets.mjs",
+    "smoke": "vite build --ssr scripts/smoke.tsx --outDir .smoke --logLevel error && node .smoke/smoke.js",
+    "shots": "vite build --ssr scripts/preview.tsx --outDir .preview-build --logLevel error && node .preview-build/preview.js"
+  },
+  "dependencies": {
+    "d3-path": "^3.1.0",
+    "d3-scale": "^4.0.2",
+    "d3-shape": "^3.2.0",
+    "nanoid": "^5.0.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-rnd": "^10.4.13",
+    "zod": "^4.4.3",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/d3-path": "^3.1.0",
+    "@types/d3-scale": "^4.0.8",
+    "@types/d3-shape": "^3.1.6",
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}

@@ -1,0 +1,228 @@
+.inspector-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 18px;
+}
+.inspector-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.inspector-head {
+  margin-bottom: 12px;
+}
+.inspector-kind {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.insp-parts-link {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  font: inherit;
+  color: var(--selection);
+  cursor: pointer;
+}
+
+/* Selected-layer path ------------------------------------------------- */
+
+.insp-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+.insp-crumb {
+  padding: 1px 3px;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.insp-crumb:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+.insp-crumb.current {
+  color: var(--text-primary);
+  cursor: default;
+}
+.insp-crumb-sep {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.inspector-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.inspector-row-actions .btn {
+  flex: 0 0 auto;
+}
+.inspector-panel .btn.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.inspector-panel .btn.danger:hover {
+  background: rgba(255, 107, 107, 0.12);
+}
+.inspector-panel .btn.tiny {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+/* Collapsible sections ------------------------------------------------ */
+
+.insp-section {
+  border-top: 1px solid var(--border-subtle);
+}
+.insp-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-secondary);
+  text-align: left;
+}
+.insp-section-head:hover {
+  color: var(--text-primary);
+}
+.insp-section-chevron {
+  width: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.insp-section-title {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.insp-section-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.insp-section-badge {
+  padding: 1px 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  text-transform: none;
+}
+.insp-section-body {
+  padding: 2px 2px 14px;
+}
+
+/* Control layout ------------------------------------------------------ */
+
+.insp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 10px;
+}
+.insp-num {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.insp-num .slider-row {
+  flex: 1;
+  min-width: 0;
+}
+.insp-num .input {
+  width: 68px;
+  flex: 0 0 auto;
+}
+.insp-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+.insp-group {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.insp-group-head {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.insp-role-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.insp-role-row .color-field {
+  flex: 1;
+  min-width: 0;
+}
+.insp-empty-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.insp-lines {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Raw JSON escape hatch ------------------------------------------------ */
+
+.inspector-json {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.inspector-json-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+.inspector-apply {
+  margin-top: 8px;
+  align-self: flex-start;
+}

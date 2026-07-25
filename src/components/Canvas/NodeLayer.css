@@ -1,0 +1,42 @@
+.node-rnd {
+  outline: none;
+}
+
+/* Solid ring = this canvas-root node is what drag/resize acts on. */
+.node-rnd.selected {
+  box-shadow: 0 0 0 1px var(--selection);
+}
+
+/* Dashed ring = the node actually being edited, when it's nested inside. */
+.node-deep-selected {
+  outline: 1px dashed var(--selection);
+  outline-offset: 2px;
+}
+
+/* Handle overlaying the selected nested part: drag/resize surface + its name. */
+.child-rnd {
+  box-shadow: 0 0 0 1px var(--selection);
+  background: color-mix(in srgb, var(--selection) 6%, transparent);
+}
+
+.child-rnd.pinned {
+  border-style: dashed;
+  background: none;
+  opacity: 0.6;
+}
+
+.child-rnd-tag {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  padding: 1px 5px;
+  border-radius: 3px 3px 0 0;
+  background: var(--selection);
+  color: #fff;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
