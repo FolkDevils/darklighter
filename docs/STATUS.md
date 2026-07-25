@@ -1,18 +1,33 @@
 # Darklighter — Status
 
-> Handoff file. Update after every phase or significant stop. Keep under ~150 lines.
-> Onboarding = **`docs/NORTH_STAR.md` first**, then `PLAN.md`, then this file, then
-> `assets/protora/ELEMENTS.md`. Nothing else.
-> Deep dives, only when you're touching that area: `docs/EXPORT.md`.
+> Handoff file. Update after every phase or significant stop. Keep under ~180 lines.
+> Onboarding = **`docs/MISSION.md`, then `docs/NORTH_STAR.md`**, then `PLAN.md`, then
+> this file, then `assets/protora/ELEMENTS.md`. Nothing else.
+> Deep dives, only when you're touching that area: `docs/EXPORT.md`,
+> `docs/EXTENDING.md` (before adding a component), `docs/RECOMMENDATION.md` (why the
+> Library and Composer are shaped the way they are).
 
 ## Current state
 
-- **Phase 0 (scaffold) — complete. Phase 1 (component model) — complete. Phase 2 (composites, animation, logo) — complete. Phase 3 (editing model) — complete. Phase 6 (export) — complete.**
-- `npm run typecheck`, `npm run build`, `npm run smoke` and `npm run shots` are green. Bundle 385 KB (`react-dom/server` is in there on purpose — see the Phase 6 decisions).
+- **Phases 0–3 complete (scaffold, component model, composites/animation/logo, editing model). Phase 6 (export) complete. Phase 5 (library, composer, variations) complete — presets became a Library, see below. Phase 7 (AI) is next and is now the only major piece left.**
+- `npm run check` (typecheck + smoke + **conform**), `npm run build` and `npm run shots` are green. Bundle 411 KB (`react-dom/server` is in there on purpose — see the Phase 6 decisions).
 - **Session 2 (2026-07-24):** corrected a serious drift (the 21 reference SVGs had been imported as flat art) and rebuilt them as parametric, animated composites — "Phase 2 — the course correction" in `docs/DECISIONS.md`.
 - **Session 3 (2026-07-24):** full audit of the selection → inspector → animation → drag path, then fixed what it found. The headline bug: a part's Animate toggle did nothing inside a cascading scene. See "Phase 3 — making every control real" in `docs/DECISIONS.md`.
 - **Session 3b (2026-07-24):** contacts now MOVE. `drift` (seeded wander) and `orbit` (formation turn) join the behavior set, with track trails. See "Phase 3b — contacts that move" in `docs/DECISIONS.md`.
 - **Session 4 (2026-07-24):** export + copy shipped (Phase 6, out of plan order because it's what makes the tool usable): animated/static SVG, rich-clipboard copy, PNG, `.dkl.json` out and back in, for a part, a group, a scene or the canvas. **`docs/EXPORT.md` is the reference.**
+- **Session 5 (2026-07-25):** the mission was written down (`docs/MISSION.md`) and the app audited against it (`docs/RECOMMENDATION.md`). The gap: **the engine had no memory** — nothing a user refined could re-enter the system. Built the Library, the Composer, variations, promoted controls and the `conform` gate. See "Phase 5" in `docs/DECISIONS.md`.
+
+## The three layers (say these words; they prevent most confusion)
+
+| Layer | What | Who authors | Where |
+| --- | --- | --- | --- |
+| **Definition** | `ComponentDef` — code, the grammar | devs; promoted AI recipes later | `components-model/defs/*` |
+| **Instance** | `ComponentNode` on the canvas | anyone, by dragging and dialing | the document tree |
+| **Saved entry** | frozen subtree + approval state | anyone; a human approves | the Library (`lib/library.ts`) |
+
+Most "we need a new component" moments are layer 3: build it in the Composer, promote
+its knobs, save it. **A saved entry is never registered as a kind** — that would make a
+`.dkl.json` reference something that exists only in one browser's localStorage.
 
 ## Editing model (read this before touching the canvas or inspector)
 
@@ -71,6 +86,26 @@
   `.dkl.json` that reopens via the toolbar's **Open**. ⇧⌘C copies the selection.
   Export serializes the MODEL through `flattenSvg`, never the canvas DOM — **read
   `docs/EXPORT.md` before touching `src/lib/svg/`.**
+- **Refined work is keepable.** Inspector ▸ Library ▸ **Save to Library** (or ⌘S) freezes
+  any node as a `LibraryEntry`; the gallery's **Saved** tab places it back, marks it
+  approved, protects it as a base, duplicates, renames, and exports/imports the whole
+  library as `.dkl-library.json` (the portable, agent-readable form — localStorage is the
+  fast path, not the source of truth). A protected base's placements fork on first edit and
+  **Return to base** restores the pristine tree.
+- **Two workspaces, one engine.** The toolbar switches **Stage** (arrange finished pieces)
+  and **Composer** (build one part or HUD alone on a blank field, then save it). The
+  composer stashes the stage document and swaps `nodes`, so the inspector, hierarchy,
+  animation, keyboard and export paths are literally the same code. Its whole stage is the
+  artifact — which is how assembly works today despite `groupSelection` still being
+  single-node.
+- **Assemblies can have their own knobs.** Select a nested part, hit **⤴** beside any
+  control, and it becomes a top-level control on the assembly (Inspector ▸ Controls).
+  That's a new component authored with no code, and it can't break brand rules because
+  it's made of parts that already can't.
+- **Variations.** The Variations panel generates 6/12/24 deterministic alternatives over
+  seed / colorway / density / speed; Apply swaps the look in place, Keep saves it to the
+  library without touching the canvas. "More" walks to the next batch of one infinite
+  deterministic sequence — it is not a re-roll.
 
 ## Key files added/changed this session
 
@@ -94,22 +129,35 @@
 | `docs/EXPORT.md` | **Session 4 — read before changing export.** Pipeline map, option matrix, invariants, known limits, how to add a format |
 | `src/lib/svg/*` | **Session 4.** `serialize.tsx` (model → SVG string, rotated-bounds framing), `download.ts` (downloads + rich multi-MIME clipboard), `export.ts` (targets, PNG raster + clamp, `.dkl.json`) |
 | `src/components/Export/*` | **Session 4.** The single export UI + the toolbar popover that hosts it |
+| `docs/MISSION.md`, `docs/RECOMMENDATION.md` | **Session 5 — read MISSION first.** The objective in two sentences, and the build recommendation everything below implements |
+| `src/lib/library.ts` | **Session 5.** `LibraryEntry`, persistence, derive scope/tags, `.dkl-library.json` import/merge. **Entries are DATA — never register one as a kind** (the comment at the top says why) |
+| `src/state/store.ts` | **Session 5.** `library` slice + `mode`/`composer`/`stageStash`, `composerArtifact`, `instanceOf`, `applyVariation`, exposed-control actions |
+| `src/components/Library/MyPartsTab.tsx` | **Session 5.** The Saved gallery: place, approve, protect, duplicate, rename, export/import |
+| `src/components/Composer/ComposerBar.tsx` | **Session 5.** Composer mode's only chrome; the header comment explains why it's a mode and not a second canvas |
+| `src/components-model/exposed.ts` | **Session 5.** Promoted knobs. Targets are CHILD-INDEX PATHS, not ids — placement re-ids the tree |
+| `src/lib/variations.ts` | **Session 5.** Deterministic n-up over seed/colorway/density/speed, offset-addressed batches |
+| `scripts/conform.tsx`, `docs/EXTENDING.md` | **Session 5.** The component contract as a gate (`npm run conform`) and its rulebook. Run before accepting any new component, human or AI |
 
 ## Next action
 
-1. **Presets + variations (PLAN.md §8, Phase 5)** — `generateVariations(node, n, axes)` over
-   seed / colorway / density / speed as an n-up picker, plus shipped protected presets and
-   the snapshot history panel. The engine is parametric enough that this pays off
-   immediately; scene-level re-seeding (Shuffle on a composite, which today only appears on
-   parts that actually use a seed) belongs here. `.dkl.json` save/load already exists —
-   presets are that plus protection and a picker.
-2. **Canvas UX leftovers** — marquee + ⌘-click multi-select (`groupSelection` still groups
+1. **Phase 7 (AI foundation)** — the only major piece left, and everything above is its
+   substrate. Manifest from **both** layers (registry defs = grammar, approved library
+   entries = vocabulary); executor against the existing `patchSchema.ts`; sidecar with mock
+   turns; freedom modes. Add library/composer ops to `patchSchema.ts` as you go. New
+   *definitions* stay human-gated: AI writes a recipe, you approve it, a dev agent promotes
+   it to a def that passes `npm run conform` (`docs/EXTENDING.md`).
+2. **Move the library to the sidecar** — localStorage is invisible to an agent, and approved
+   entries are the strongest signal of "what good looks like" that Phase 7 will have.
+   `data/darklighter/library/*.json`, same shape as the export file.
+3. **Canvas UX leftovers** — marquee + ⌘-click multi-select (`groupSelection` still groups
    the single selection, and export has no multi-select scope for the same reason),
-   drag-to-reparent in Hierarchy, snapping/alignment guides.
-3. More scenes from `ELEMENTS.md` §G (flight HUD, apogee plot, AI badge) — each is now a
-   ~120-line composite, not an import.
-4. **Phase 7 (AI foundation)** — manifest from the registry, executor against the existing
-   `patchSchema.ts`, sidecar with mock turns.
+   drag-to-reparent in Hierarchy, snapping/alignment guides. The Composer covers the
+   assembly case, which is why this dropped down the list.
+4. **Snapshot history panel** (PLAN.md §8) — the store actions and localStorage key exist;
+   the panel is still `PhasePlaceholder`. Favorite/reject metadata is training signal for #1.
+5. More scenes from `ELEMENTS.md` §G (flight HUD, apogee plot, AI badge) — each is now a
+   ~120-line composite, not an import. Chart/data-viz primitives belong here too, built from
+   the same tokens and behaviors (`docs/MISSION.md` puts them in scope).
 
 ### Known gaps (deliberate, not forgotten)
 
@@ -118,7 +166,14 @@
   heavy. A `fontScale` on StyleConfig would fix it if it becomes a real problem.
 - `modifiers` and `notes` have store actions and no UI yet (PLAN.md §5.1).
 - Forking a `provenance.protected` node on first edit doesn't update the selection to the
-  fork's id. Only reachable once presets ship (Phase 5).
+  fork's id — reachable now that protected bases exist, so worth fixing next time it bites.
+- Library entries are **copies, not links**: editing an entry doesn't update instances
+  already on a canvas. `provenance.baseComponent` is recorded on every placement so
+  "update instances from library" can be added later without a migration.
+- Promoted controls are dropped if the assembly's child order changes (they address targets
+  by index path). The inspector shows "Target missing" instead of failing silently.
+- The library lives in localStorage; the export/import file is the portable form. Moving it
+  behind the sidecar is item 2 under Next action.
 - Export limits (all listed in `docs/EXPORT.md`): PNG is always the still frame, PNG fonts
   resolve only if installed locally (no `@font-face` embedding yet), raster scale is clamped
   to 16M px, and there's no multi-select scope — group first, then export the group.
@@ -143,6 +198,15 @@
   needs to run outside the sandbox: `required_permissions: ["all"]`.)
 - Export never reads the DOM. If you find yourself reaching for `document` to build a file,
   re-read `docs/EXPORT.md` — the canvas is divs, and the model is the source.
+- **`npm run conform` before adding or accepting a component** (`docs/EXTENDING.md`). It
+  will reject a raw hex, an off-palette output color, a prop with no control, a
+  non-deterministic render, or a static frame that isn't the resting frame. That list is
+  the difference between a brand system and forty one-offs.
+- **Composer mode edits the same `nodes` array as the stage** — the stage document is parked
+  in `stageStash`. Any new action you write works in both modes for free; anything that
+  reaches around the store for "the canvas" will not.
+- Promoted controls address their target by child-INDEX path, not by node id, because
+  placing a library entry clones the tree with fresh ids. `npm run smoke` proves it.
 - Dev server: Vite auto-increments off 5173 if the port is busy — check the printed port.
 - `git` still has **no commits**.
 
@@ -156,4 +220,7 @@ rendering ownership, two lockup kinds instead of one), and the Phase-3 block (th
 handle, registry introspection, `vectorLine` origin/fitBox), the Phase-3b block (the
 `drift` behavior, `visibleWhen` receiving the node, factory prop backfill in `hydrateNode`),
 and the Phase-6 block (model-based serialization instead of DOM cloning, `svgRegistry.ts`
-deleted, `react-dom/server` in the bundle, PNG always static).
+deleted, `react-dom/server` in the bundle, PNG always static), and the Phase-5 block (the
+three-layer model, entries as data rather than registered kinds, one library instead of two,
+no stored thumbnails, the Composer as a mode over the same store, `ComponentNode.exposed`,
+deterministic variations, and the `conform` gate).

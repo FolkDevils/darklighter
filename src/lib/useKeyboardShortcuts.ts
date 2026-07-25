@@ -6,7 +6,8 @@
  *
  * ⌘Z/⇧⌘Z undo · ⌘D duplicate · ⌘G group · ⇧⌘G ungroup · ⌫ delete ·
  * arrows nudge (⇧ = ×10) · Space play/pause · R replay ·
- * ↩ step into a group · esc step back out · ⇧⌘C copy the selection as SVG
+ * ↩ step into a group · esc step back out · ⇧⌘C copy the selection as SVG ·
+ * ⌘S save to the library
  */
 import { useEffect } from "react";
 import { useDarklighter } from "@/state/store";
@@ -45,6 +46,14 @@ export function useKeyboardShortcuts() {
           e.preventDefault();
           void copySvgMarkup({ scope: "node", node }, { animated: s.playing });
         }
+        return;
+      }
+      // Save means "put this in the library" — in the composer that's the
+      // artifact, on the stage it's the selection. Both go to the same place.
+      if (meta && key === "s") {
+        e.preventDefault();
+        if (s.mode === "composer") s.composerSave();
+        else if (selectedId) s.saveToLibrary({ nodeId: selectedId });
         return;
       }
       if (meta && key === "g" && selectedId) {

@@ -10,15 +10,19 @@ import type { ComponentNode } from "@/components-model/types";
 import { defineComponent, type RenderProps } from "@/components-model/registry";
 import { baseNode } from "@/components-model/defaults";
 import { part } from "@/components-model/scenes";
-import { behaviorOf, timing } from "@/lib/anim";
 
-const SCOPE_BEHAVIORS = ["fadeIn", "drawOn"] as const;
-
-export interface RadarScopeProps {
-  /** Dark disc behind the scope, like the source scene's `#330000` field. */
-  showField: boolean;
-  fieldInset: number;
-}
+/**
+ * No props: the scope is purely a container for its parts.
+ *
+ * It used to paint a dark disc behind itself (the source scene's `#330000`
+ * field). That's gone, not defaulted off — a component that paints its own
+ * backdrop can only ever sit on that backdrop, which makes it a picture of a
+ * radar rather than a part you can compose with. Transparent, it takes the
+ * colour of whatever page it lands on, and its contacts re-ink with that page
+ * (lib/colorway.ts). Removing the prop rather than flipping its default also
+ * means documents saved with the disc switched on lose it too.
+ */
+export type RadarScopeProps = Record<string, never>;
 
 declare module "@/components-model/types" {
   interface KindPropsRegistry {
@@ -33,7 +37,7 @@ function factory(): ComponentNode<"radarScope"> {
   return baseNode(
     "radarScope",
     "Radar Scope",
-    { showField: true, fieldInset: 0 },
+    {},
     {
       layout: { w: SIZE, h: SIZE },
       animation: { cascade: true, staggerMs: 70 },
@@ -47,7 +51,10 @@ function factory(): ComponentNode<"radarScope"> {
         part(
           "ringSet",
           { x: inset(470), y: inset(470), w: 470, h: 470 },
-          { count: 5, labeled: true, labelStep: 2, labelUnit: "NM", labelRole: "field", accentOuter: true },
+          // `ink` rather than `field`: these used to be light type ON the dark
+          // disc. With no disc they sit on the page, and `ink` is the role that
+          // reverses with it, so they read on either canvas.
+          { count: 5, labeled: true, labelStep: 2, labelUnit: "NM", labelRole: "ink", accentOuter: true },
           { name: "Range Rings", animation: { behavior: "drawOn", delayMs: 150, durationMs: 1400, staggerMs: 120 } },
         ),
         part(
@@ -67,7 +74,7 @@ function factory(): ComponentNode<"radarScope"> {
             distribution: "ring",
             glyphId: "squareDot",
             dotSize: 9,
-            roleColor: "field",
+            roleColor: "ink",
             driftRadius: 24,
             driftLegs: 5,
             trail: 1,
@@ -106,21 +113,14 @@ function factory(): ComponentNode<"radarScope"> {
   );
 }
 
-function Render({ node, animate, color }: RenderProps<"radarScope">) {
+/**
+ * Draws nothing of its own — every mark on screen belongs to a child node, and
+ * the background belongs to the page. The empty `<svg>` is still the contract:
+ * `RenderNode` expects one element back, and the children compose inside it.
+ */
+function Render({ node }: RenderProps<"radarScope">) {
   const { w, h } = node.layout;
-  const { showField, fieldInset } = node.props;
-  const behavior = animate ? behaviorOf(node.animation.behavior, SCOPE_BEHAVIORS) : null;
-  const r = Math.min(w, h) / 2 - fieldInset;
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%">
-      {showField && (
-        <circle cx={w / 2} cy={h / 2} r={Math.max(1, r)} fill={color("ink")}>
-          {behavior && <animate attributeName="opacity" {...timing(node.animation, "0", "1")} />}
-        </circle>
-      )}
-    </svg>
-  );
+  return <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" />;
 }
 
 defineComponent({
@@ -132,10 +132,9 @@ defineComponent({
     "Full radar scope generated from grid + range rings + sweep + seeded contact blips + center reticle. Every part stays editable.",
   factory,
   Render,
-  controls: [
-    { kind: "toggle", key: "showField", label: "Dark field" },
-    { kind: "number", key: "fieldInset", label: "Field inset", min: 0, max: 120, step: 1, visibleWhen: (p) => Boolean(p.showField) },
-  ],
-  animBehaviors: [...SCOPE_BEHAVIORS],
+  controls: [],
+  // A pure container: the parts inside carry the motion, and cascade timing
+  // reaches them from this node's animation config.
+  animBehaviors: [],
   acceptsChildren: true,
 });

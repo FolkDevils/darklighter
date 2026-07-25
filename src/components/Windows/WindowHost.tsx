@@ -7,6 +7,7 @@ import { PhasePlaceholder } from "./PhasePlaceholder";
 import { LibraryPanel } from "@/components/Library/LibraryPanel";
 import { HierarchyPanel } from "@/components/Hierarchy/HierarchyPanel";
 import { InspectorPanel } from "@/components/Inspector/InspectorPanel";
+import { VariationsPanel } from "@/components/Variations/VariationsPanel";
 
 /**
  * Adapted from the reference app's WindowHost (PLAN.md §4 "PORT"). Panel
@@ -44,6 +45,13 @@ const WINDOWS: WinDef[] = [
     width: 324,
     body: <InspectorPanel />,
     anchor: (w, _h, width) => ({ x: Math.max(16, w - width - 16), y: 16 }),
+  },
+  {
+    id: "variations",
+    title: "Variations",
+    width: 340,
+    body: <VariationsPanel />,
+    anchor: (w, h, width) => ({ x: Math.max(16, w - width - 356), y: Math.max(16, h - 520) }),
   },
   {
     id: "assistant",

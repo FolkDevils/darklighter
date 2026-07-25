@@ -16,21 +16,39 @@ import { brandAsset } from "@/assets/brand/assets";
 import { useElementSize } from "@/lib/useElementSize";
 
 /**
- * A preview node is throwaway: fixed id/seed so previews never re-render
- * randomly. Size is left ALONE and the card scales with a CSS transform —
- * shrinking `layout` would leave a composite's children at their original
- * coordinates and blow them out of the frame.
+ * A preview node is throwaway: a namespaced id (so two cards' mask ids can't
+ * collide) and, for registry cards, a fixed seed so gallery previews never
+ * re-render randomly. A SAVED entry keeps its own seed — its card has to show
+ * the exact tree it will place, not a re-roll of it.
+ *
+ * Size is left ALONE and the card scales with a CSS transform: shrinking
+ * `layout` would leave a composite's children at their original coordinates
+ * and blow them out of the frame.
  */
-function previewNode(node: ComponentNode): ComponentNode {
+function previewNode(node: ComponentNode, keepSeed = false): ComponentNode {
   return {
     ...node,
-    id: `preview_${node.kind}`,
-    seed: 7,
+    id: `preview_${node.id}`,
+    seed: keepSeed ? node.seed : 7,
     layout: { ...node.layout, x: 0, y: 0, rotation: 0 },
   };
 }
 
-export function Thumbnail({ kind, assetId }: { kind: ComponentKind; assetId?: string }) {
+/**
+ * `node` wins when given — that's how saved library entries preview: the same
+ * renderer, fed the tree the entry actually stores, so a card can never show
+ * something the placement won't. Otherwise the kind's factory defaults render,
+ * which is the registry gallery.
+ */
+export function Thumbnail({
+  kind,
+  assetId,
+  node: source,
+}: {
+  kind: ComponentKind;
+  assetId?: string;
+  node?: ComponentNode;
+}) {
   const { ref: boxRef, size } = useElementSize<HTMLDivElement>();
   const seenRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -53,13 +71,14 @@ export function Thumbnail({ kind, assetId }: { kind: ComponentKind; assetId?: st
   }, [mounted]);
 
   const node = useMemo(() => {
+    if (source) return previewNode(source, true);
     const base = componentDef(kind).factory();
     if (!assetId) return previewNode(base);
     const asset = brandAsset(assetId);
     if (!asset) return previewNode(base);
     const { w, h } = asset.viewBox;
     return previewNode({ ...base, props: { assetId }, layout: { ...base.layout, w, h } });
-  }, [kind, assetId]);
+  }, [kind, assetId, source]);
 
   const scale =
     size.width > 0

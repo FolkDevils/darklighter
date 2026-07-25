@@ -1,3 +1,6 @@
+/* The page colour is painted here, not on .canvas-stage, so the background you
+   are designing against fills the whole work area. The `background` inline
+   style comes from the document (Canvas.tsx). */
 .canvas-viewport {
   position: relative;
   flex: 1;
@@ -6,16 +9,20 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--bg-app);
-  background-image: radial-gradient(circle, var(--border-subtle) 1px, transparent 1px);
-  background-size: 22px 22px;
 }
+
+/* The artboard: transparent, so it shows the page colour, and marked only by a
+   hairline. That boundary still matters — canvas-scope export frames to it. */
 .canvas-stage {
   position: relative;
   flex: 0 0 auto;
-  box-shadow: var(--shadow-panel);
-  border: 1px solid var(--border-subtle);
+  outline: 1px dashed rgba(51, 0, 0, 0.22);
+  outline-offset: 0;
 }
+.canvas-viewport.on-dark .canvas-stage {
+  outline-color: rgba(242, 240, 229, 0.22);
+}
+
 .canvas-empty-note {
   position: absolute;
   inset: 0;
@@ -27,4 +34,9 @@
   letter-spacing: 0.03em;
   color: #330000; /* Burnt Drone Brown — legible on the default Blimp White stage */
   opacity: 0.35;
+}
+/* …and its reverse, so the hint doesn't vanish when the canvas flips. */
+.canvas-viewport.on-dark .canvas-empty-note {
+  color: #f2f0e5; /* Blimp White */
+  opacity: 0.4;
 }

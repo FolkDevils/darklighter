@@ -38,6 +38,12 @@ export interface RenderProps<K extends ComponentKind = ComponentKind> {
    * renderers never import token tables directly).
    */
   color: (role: import("./types").ColorRole) => string;
+  /**
+   * Light or dark page. `color` already accounts for it, so most renderers can
+   * ignore this — it exists for hosts that resolve colors for a node OTHER than
+   * their own (a slot child with its own style: see defs/logoP.tsx).
+   */
+  surface?: import("@/lib/colorway").Surface;
 }
 
 export interface ComponentDef<K extends ComponentKind = ComponentKind> {

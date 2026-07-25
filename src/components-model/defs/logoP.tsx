@@ -18,7 +18,7 @@ import { componentDef, defineComponent, type RenderProps } from "@/components-mo
 import { baseNode } from "@/components-model/defaults";
 import { part } from "@/components-model/scenes";
 import { behaviorOf, timing } from "@/lib/anim";
-import { resolveColor } from "@/lib/colorway";
+import { resolveColor, type Surface } from "@/lib/colorway";
 import {
   APPROVED_RADAR,
   LOGO_P_VIEWBOX,
@@ -98,11 +98,24 @@ function factory(): ComponentNode<"logoP"> {
  * viewport with the child's own box means the child renderer is used
  * verbatim — no second copy of its geometry that could drift.
  */
-function SlotArt({ node, animate, ink }: { node: ComponentNode; animate: boolean; ink: string | null }) {
+function SlotArt({
+  node,
+  animate,
+  ink,
+  surface,
+}: {
+  node: ComponentNode;
+  animate: boolean;
+  ink: string | null;
+  surface: Surface;
+}) {
   const def = componentDef(node.kind);
+  // The slot child carries its own style, so its colors are resolved here
+  // rather than through the host's injected `color` — which is exactly why the
+  // page surface has to be handed down explicitly.
   const color = ink
     ? () => ink
-    : (role: Parameters<typeof resolveColor>[1]) => resolveColor(node.style, role);
+    : (role: Parameters<typeof resolveColor>[1]) => resolveColor(node.style, role, surface);
   return (
     <svg
       x={RADAR_SLOT_FRAME.x + node.layout.x}
@@ -116,7 +129,7 @@ function SlotArt({ node, animate, ink }: { node: ComponentNode; animate: boolean
   );
 }
 
-function Render({ node, animate, color }: RenderProps<"logoP">) {
+function Render({ node, animate, color, surface = "light" }: RenderProps<"logoP">) {
   const { showTm, slotMode } = node.props;
   const vb = LOGO_P_VIEWBOX;
   const ink = color("ink");
@@ -133,14 +146,15 @@ function Render({ node, animate, color }: RenderProps<"logoP">) {
         <mask id={maskId} maskUnits="userSpaceOnUse" style={{ maskType: "luminance" }}>
           <rect width={vb.w} height={vb.h} fill="black" />
           <path d={P_SHELL_PATH} fill="white" />
-          {/* Black strokes inside the white P = punched through. */}
-          <SlotArt node={radar} animate={radarRunning} ink="black" />
+          {/* Black strokes inside the white P = punched through. The mask is
+              luminance math, not paint, so it never reverses with the page. */}
+          <SlotArt node={radar} animate={radarRunning} ink="black" surface={surface} />
         </mask>
       )}
       <path d={P_SHELL_PATH} fill={ink} mask={knockout && radar ? `url(#${maskId})` : undefined}>
         {behavior === "drawOn" && <animate attributeName="opacity" {...timing(node.animation, "0", "1")} />}
       </path>
-      {!knockout && radar && <SlotArt node={radar} animate={radarRunning} ink={null} />}
+      {!knockout && radar && <SlotArt node={radar} animate={radarRunning} ink={null} surface={surface} />}
       {showTm &&
         TM_PATHS.map((d, i) => (
           <path key={i} d={d} fill={ink}>

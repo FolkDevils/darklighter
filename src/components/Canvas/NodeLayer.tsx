@@ -2,6 +2,7 @@ import "./NodeLayer.css";
 import { useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 import type { ComponentNode } from "@/components-model/types";
+import type { Surface } from "@/lib/colorway";
 import { RenderNode } from "@/components-model/RenderNode";
 import { findNode } from "@/lib/nodeTree";
 import { useDarklighter } from "@/state/store";
@@ -14,6 +15,8 @@ interface Props {
   /** Set when the real selection is a node nested inside this one, so it can be outlined. */
   deepSelectedId?: string;
   animate: boolean;
+  /** Light or dark canvas — reverses ink/field so marks stay legible. */
+  surface: Surface;
 }
 
 const CORNER_RESIZE = {
@@ -38,7 +41,7 @@ const CORNER_RESIZE = {
  * re-entering), root dragging stands down in favour of the selected part's own
  * handle, and Escape steps back out.
  */
-export function NodeLayer({ node, scale, selected, deepSelectedId, animate }: Props) {
+export function NodeLayer({ node, scale, selected, deepSelectedId, animate, surface }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const select = useDarklighter((s) => s.select);
   const patchLayout = useDarklighter((s) => s.patchLayout);
@@ -123,7 +126,13 @@ export function NodeLayer({ node, scale, selected, deepSelectedId, animate }: Pr
           transform: node.layout.rotation ? `rotate(${node.layout.rotation}deg)` : undefined,
         }}
       >
-        <RenderNode key={`${playNonce}:${animate}`} node={node} animate={animate} selectedId={deepSelectedId} />
+        <RenderNode
+          key={`${playNonce}:${animate}`}
+          node={node}
+          animate={animate}
+          selectedId={deepSelectedId}
+          surface={surface}
+        />
         {deepSelectedId && <ChildHandle nodeId={deepSelectedId} scale={scale} />}
       </div>
     </Rnd>

@@ -15,6 +15,7 @@
  */
 import type { ComponentNode, DarklighterDoc } from "@/components-model/types";
 import { CANVAS_H, CANVAS_W } from "@/lib/constants";
+import type { Surface } from "@/lib/colorway";
 import { rotatedFrame, serializeCanvas, serializeNode, type SvgOptions } from "./serialize";
 import {
   copyImage,
@@ -36,6 +37,13 @@ export interface ExportOpts {
   /** Brand token id / hex to paint behind the art, or null for transparency. */
   background?: string | null;
   padding?: number;
+  /**
+   * The canvas the art was composed against. A transparent export has no
+   * backdrop to infer light-or-dark from, so without this a graphic built on
+   * the dark canvas would export inked for white paper — the opposite of what
+   * the user just approved on screen.
+   */
+  surface?: Surface;
 }
 
 const PAD_DEFAULT = 24;
@@ -45,6 +53,7 @@ export function buildSvg(target: ExportTarget, opts: ExportOpts): string {
     animated: opts.animated,
     background: opts.background ?? null,
     declaration: true,
+    surface: opts.surface,
   };
   return target.scope === "node"
     ? serializeNode(target.node, { ...svgOpts, padding: opts.padding ?? PAD_DEFAULT })

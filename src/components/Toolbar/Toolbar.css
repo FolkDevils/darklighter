@@ -23,3 +23,29 @@
 .toolbar-spacer {
   flex: 1;
 }
+
+.mode-switch {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.mode-tab {
+  padding: 3px 12px;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.mode-tab:hover {
+  color: var(--text-primary);
+}
+.mode-tab.on {
+  background: rgba(254, 59, 31, 0.16);
+  color: var(--text-primary);
+}

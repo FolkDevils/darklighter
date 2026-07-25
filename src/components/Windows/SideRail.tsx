@@ -28,6 +28,14 @@ const ICON = {
       <circle cx="16" cy="6" r="2" /><circle cx="9" cy="12" r="2" /><circle cx="16.5" cy="18" r="2" />
     </svg>
   ),
+  variations: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <circle cx="17.5" cy="6.5" r="3.5" />
+      <circle cx="6.5" cy="17.5" r="3.5" opacity="0.55" />
+      <rect x="14" y="14" width="7" height="7" rx="1" opacity="0.55" />
+    </svg>
+  ),
   assistant: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3a7 7 0 0 0-4 12.7V19a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3.3A7 7 0 0 0 12 3Z" />
@@ -46,6 +54,7 @@ const ITEMS: RailItem[] = [
   { id: "library", label: "Library", icon: ICON.library },
   { id: "hierarchy", label: "Hierarchy", icon: ICON.hierarchy },
   { id: "inspector", label: "Inspector", icon: ICON.inspector },
+  { id: "variations", label: "Variations", icon: ICON.variations },
   { id: "assistant", label: "Assistant", icon: ICON.assistant },
   { id: "history", label: "History", icon: ICON.history },
 ];

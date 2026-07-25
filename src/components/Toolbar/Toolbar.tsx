@@ -20,12 +20,39 @@ export function Toolbar() {
   const historyPast = useDarklighter((s) => s.historyPast);
   const historyFuture = useDarklighter((s) => s.historyFuture);
   const loadDoc = useDarklighter((s) => s.loadDoc);
+  const mode = useDarklighter((s) => s.mode);
+  const enterComposer = useDarklighter((s) => s.enterComposer);
+  const exitComposer = useDarklighter((s) => s.exitComposer);
 
   const isDark = background.color === "burntDroneBrown";
+  const composing = mode === "composer";
 
   return (
     <div className="toolbar">
       <span className="toolbar-brand">DARKLIGHTER</span>
+      <span className="toolbar-sep" />
+      {/* Stage for composition and context, Composer for construction
+          (docs/RECOMMENDATION.md §3). */}
+      <div className="mode-switch" role="tablist" aria-label="Workspace">
+        <button
+          role="tab"
+          aria-selected={!composing}
+          className={`mode-tab${composing ? "" : " on"}`}
+          title="The stage: arrange finished pieces together"
+          onClick={() => composing && exitComposer()}
+        >
+          Stage
+        </button>
+        <button
+          role="tab"
+          aria-selected={composing}
+          className={`mode-tab${composing ? " on" : ""}`}
+          title="The composer: build one part or HUD in isolation, then save it"
+          onClick={() => !composing && enterComposer()}
+        >
+          Composer
+        </button>
+      </div>
       <span className="toolbar-sep" />
       <button
         className="btn ghost"

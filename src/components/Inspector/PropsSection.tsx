@@ -13,6 +13,14 @@ import { useEffect, useRef, useState } from "react";
 import type { ComponentNode } from "@/components-model/types";
 import { componentDef } from "@/components-model/registry";
 import { controlKey, type ControlSpec } from "@/components-model/controlSpec";
+import {
+  channelFor,
+  childIndexPath,
+  isPromoted,
+  keyFor,
+  toExposedControl,
+} from "@/components-model/exposed";
+import { findNode } from "@/lib/nodeTree";
 import { useDarklighter } from "@/state/store";
 import {
   ColorInput,
@@ -59,12 +67,54 @@ function LineListInput({ value, onChange }: { value: string[]; onChange: (v: str
 export function PropsSection({ node }: { node: ComponentNode }) {
   const patchProps = useDarklighter((s) => s.patchProps);
   const patchStyle = useDarklighter((s) => s.patchStyle);
+  const promoteControl = useDarklighter((s) => s.promoteControl);
+  const nodes = useDarklighter((s) => s.nodes);
+  const selection = useDarklighter((s) => s.selection);
 
   const def = componentDef(node.kind);
   const props = node.props as Record<string, unknown>;
   const set = (key: string, value: unknown) => patchProps(node.id, { [key]: value });
 
-  const renderControl = (c: ControlSpec) => {
+  // Promoting lifts this control onto the assembly the part belongs to — the
+  // root of the current selection path, which is the thing that gets saved to
+  // the library. A part selected on its own has no assembly, so no button.
+  const hostId = selection.length > 1 ? selection[0] : null;
+  const host = hostId ? (findNode(nodes, hostId)?.node ?? null) : null;
+  const hostPath = host ? childIndexPath(host, node.id) : null;
+
+  const Promote = ({ c }: { c: ControlSpec }) => {
+    if (!host || !hostPath) return null;
+    const channel = channelFor(c);
+    const key = keyFor(c);
+    const control = toExposedControl(c);
+    if (!control) return null;
+    const already = isPromoted(host, hostPath, channel, key);
+    return (
+      <button
+        type="button"
+        className={`promote${already ? " on" : ""}`}
+        disabled={already}
+        title={
+          already
+            ? `Already a control on “${host.name}”`
+            : `Promote to a top-level control on “${host.name}” — so this assembly can be reused with this knob exposed`
+        }
+        onClick={() =>
+          promoteControl(host.id, node.id, {
+            label: c.label,
+            channel,
+            key,
+            control,
+            hint: c.hint,
+          })
+        }
+      >
+        ⤴
+      </button>
+    );
+  };
+
+  const renderField = (c: ControlSpec) => {
     const key = controlKey(c);
     switch (c.kind) {
       case "number": {
@@ -137,6 +187,18 @@ export function PropsSection({ node }: { node: ComponentNode }) {
       default:
         return null;
     }
+  };
+
+  const renderControl = (c: ControlSpec) => {
+    const field = renderField(c);
+    if (!field) return null;
+    if (!host || !hostPath) return field;
+    return (
+      <div key={controlKey(c)} className="ctl-row">
+        <div className="ctl-body">{field}</div>
+        <Promote c={c} />
+      </div>
+    );
   };
 
   const visible = def.controls.filter((c) => !c.visibleWhen || c.visibleWhen(props, node));

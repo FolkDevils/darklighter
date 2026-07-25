@@ -12,7 +12,10 @@ import { GeometrySection } from "./GeometrySection";
 import { StyleSection } from "./StyleSection";
 import { AnimationSection } from "./AnimationSection";
 import { SlotsSection } from "./SlotsSection";
+import { LibrarySection } from "./LibrarySection";
+import { ExposedSection } from "./ExposedSection";
 import { ExportActions } from "@/components/Export/ExportActions";
+import { exposedParams } from "@/components-model/exposed";
 
 /**
  * Properties panel for the selected node (PLAN.md §6). Every section here is
@@ -36,6 +39,7 @@ export function InspectorPanel() {
   const removeNode = useDarklighter((s) => s.removeNode);
   const duplicateNode = useDarklighter((s) => s.duplicateNode);
   const select = useDarklighter((s) => s.select);
+  const library = useDarklighter((s) => s.library);
 
   const selectedId = selection[selection.length - 1];
   const node = selectedId ? (findNode(nodes, selectedId)?.node ?? null) : null;
@@ -68,6 +72,10 @@ export function InspectorPanel() {
   const usage = kindUsage(node.kind);
   const chain = nodeChain(nodes, node.id);
   const partCount = node.children.length;
+  const origin = node.provenance.baseComponent
+    ? library.find((e) => e.id === node.provenance.baseComponent)
+    : undefined;
+  const exposed = exposedParams(node);
   // Container timing still drives the parts inside, so a kind with no motion
   // of its own keeps the animation section as long as it has children.
   const showAnimation = def.animBehaviors.length > 0 || partCount > 0;
@@ -115,6 +123,12 @@ export function InspectorPanel() {
         <Toggle checked={node.hidden} onChange={(v) => setHidden(node.id, v)} label="Hide" />
       </div>
 
+      {exposed.length > 0 && (
+        <Section title="Controls" count={exposed.length}>
+          <ExposedSection node={node} />
+        </Section>
+      )}
+
       {def.controls.length > 0 && (
         <Section title={def.label} count={def.controls.length}>
           <PropsSection node={node} />
@@ -147,6 +161,14 @@ export function InspectorPanel() {
           <AnimationSection node={node} />
         </Section>
       )}
+
+      <Section
+        title="Library"
+        defaultOpen={false}
+        badge={origin ? (origin.status === "approved" ? "approved" : "draft") : undefined}
+      >
+        <LibrarySection node={node} />
+      </Section>
 
       <Section title="Export" defaultOpen={false} badge={partCount > 0 ? "group" : "part"}>
         <ExportActions target={{ scope: "node", node }} />

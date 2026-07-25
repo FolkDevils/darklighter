@@ -16,9 +16,21 @@
  */
 import { create } from "zustand";
 import { nanoid } from "nanoid";
-import type { AnimationConfig, ComponentNode, PresetFile, StyleConfig } from "@/components-model/types";
+import type {
+  AnimationConfig,
+  ComponentNode,
+  PresetFile,
+  SelectionPath,
+  StyleConfig,
+} from "@/components-model/types";
 import type { DarklighterActions, DarklighterState, SnapshotEntry } from "@/state/contract";
 import { componentDef } from "@/components-model/registry";
+import {
+  childIndexPath,
+  isPromoted,
+  resolveTarget,
+  type ExposedParam,
+} from "@/components-model/exposed";
 import {
   cloneWithNewIds,
   findNode,
@@ -29,6 +41,16 @@ import {
   setSlot,
 } from "@/lib/nodeTree";
 import { loadJSON, saveJSON } from "@/lib/persist";
+import {
+  deriveScope,
+  deriveTags,
+  entryFromNode,
+  loadLibrary,
+  mergeLibraries,
+  persistLibrary,
+  type LibraryEntry,
+  type LibraryStatus,
+} from "@/lib/library";
 import { CANVAS_H, CANVAS_W } from "@/lib/constants";
 import { assetPlacementSize, brandAsset } from "@/assets/brand/assets";
 
@@ -37,7 +59,13 @@ import { assetPlacementSize, brandAsset } from "@/assets/brand/assets";
 /* shape from the Phase 0 scaffold.                                     */
 /* ------------------------------------------------------------------ */
 
-export type WindowId = "library" | "hierarchy" | "inspector" | "assistant" | "history";
+export type WindowId =
+  | "library"
+  | "hierarchy"
+  | "inspector"
+  | "variations"
+  | "assistant"
+  | "history";
 
 export interface WindowState {
   open: boolean;
@@ -52,8 +80,9 @@ const initialWindows = (): Record<WindowId, WindowState> => ({
   library: { open: false, x: null, y: null, w: null, h: null, z: 0 },
   hierarchy: { open: false, x: null, y: null, w: null, h: null, z: 1 },
   inspector: { open: false, x: null, y: null, w: null, h: null, z: 2 },
-  assistant: { open: false, x: null, y: null, w: null, h: null, z: 3 },
-  history: { open: false, x: null, y: null, w: null, h: null, z: 4 },
+  variations: { open: false, x: null, y: null, w: null, h: null, z: 3 },
+  assistant: { open: false, x: null, y: null, w: null, h: null, z: 4 },
+  history: { open: false, x: null, y: null, w: null, h: null, z: 5 },
 });
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +92,13 @@ const initialWindows = (): Record<WindowId, WindowState> => ({
 interface DocSnapshot {
   nodes: ComponentNode[];
   background: { color: string };
+}
+
+/** The stage document, parked verbatim while the composer is open. */
+interface StageStash extends DocSnapshot {
+  selection: SelectionPath;
+  historyPast: DocSnapshot[];
+  historyFuture: DocSnapshot[];
 }
 
 const HISTORY_CAP = 100;
@@ -142,15 +178,22 @@ function scaleSubtree(node: ComponentNode, fx: number, fy: number): ComponentNod
   };
 }
 
+/** Top-left corner that centers a `w`×`h` box inside `boxW`×`boxH`. */
+function centerIn(w: number, h: number, boxW: number, boxH: number, offset = 0) {
+  return {
+    x: Math.max(0, Math.round((boxW - w) / 2)) + offset,
+    y: Math.max(0, Math.round((boxH - h) / 2)) + offset,
+  };
+}
+
+/** Same, against the full stage — where composer artifacts and placements land. */
+const centeredBox = (w: number, h: number, offset = 0) => centerIn(w, h, CANVAS_W, CANVAS_H, offset);
+
 /** Place a freshly created node in the middle of the box it's being added to. */
 function centered(node: ComponentNode, boxW: number, boxH: number, offset: number): ComponentNode {
   return {
     ...node,
-    layout: {
-      ...node.layout,
-      x: Math.max(0, Math.round((boxW - node.layout.w) / 2)) + offset,
-      y: Math.max(0, Math.round((boxH - node.layout.h) / 2)) + offset,
-    },
+    layout: { ...node.layout, ...centerIn(node.layout.w, node.layout.h, boxW, boxH, offset) },
   };
 }
 
@@ -221,6 +264,59 @@ function resolveMutableId(nodes: ComponentNode[], id: string): { nodes: Componen
   return { nodes: next, id: newId };
 }
 
+/* ------------------------------------------------------------------ */
+/* Composer helpers                                                     */
+/* ------------------------------------------------------------------ */
+
+/** The union box of a set of roots, in stage coordinates. */
+function boundsOf(nodes: ComponentNode[]): { x: number; y: number; w: number; h: number } {
+  if (nodes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
+  const x = Math.min(...nodes.map((n) => n.layout.x));
+  const y = Math.min(...nodes.map((n) => n.layout.y));
+  const r = Math.max(...nodes.map((n) => n.layout.x + n.layout.w));
+  const b = Math.max(...nodes.map((n) => n.layout.y + n.layout.h));
+  return { x, y, w: r - x, h: b - y };
+}
+
+/**
+ * What the composer is currently building, as ONE node.
+ *
+ * The composer's whole stage is the artifact, which is what lets it assemble
+ * many parts into one saveable thing without the multi-select the stage still
+ * lacks. A single root is taken as-is; several roots are wrapped in a
+ * composite framed to their union box, with children rebased into it.
+ */
+export function composerArtifact(nodes: ComponentNode[], name: string): ComponentNode | null {
+  const visible = nodes.filter((n) => !n.hidden);
+  if (visible.length === 0) return null;
+  if (visible.length === 1) return { ...visible[0], name };
+  const box = boundsOf(visible);
+  const group = componentDef("composite").factory();
+  return {
+    ...group,
+    name,
+    layout: { ...group.layout, ...box, rotation: 0 },
+    children: visible.map((n) => ({
+      ...n,
+      layout: { ...n.layout, x: n.layout.x - box.x, y: n.layout.y - box.y },
+    })),
+  };
+}
+
+/** Drop a subtree onto a stage centered, with fresh ids and library provenance. */
+function instanceOf(entry: LibraryEntry, opts?: { protectedBase?: boolean }): ComponentNode {
+  const clone = cloneWithNewIds(hydrateNode(entry.node), () => nanoid(10));
+  return {
+    ...clone,
+    name: entry.name,
+    provenance: {
+      source: entry.source === "ai" ? "ai" : "library",
+      baseComponent: entry.id,
+      protected: opts?.protectedBase ?? entry.protectedBase ?? false,
+    },
+  };
+}
+
 /** Shared guard for every single-node patch: fork-if-protected, no-op-if-locked. */
 function patchNode(
   nodes: ComponentNode[],
@@ -257,6 +353,83 @@ export type DarklighterStoreState = DarklighterState &
      */
     ungroupSelection: () => void;
 
+    /* -- the Library (docs/RECOMMENDATION.md §2) ------------------------- */
+
+    /**
+     * User- and AI-authored saved parts. Extension beyond the §5.3 contract:
+     * `savePreset`/`loadPreset` there replace the WHOLE document, which makes
+     * them a save-file mechanism, not a library. These keep entries as
+     * placeable subtrees with approval state instead.
+     */
+    library: LibraryEntry[];
+    /**
+     * Freeze a subtree into the library. Source, in order: an explicit `node`
+     * (a generated variation that was never on the canvas), a `nodeId` from the
+     * current tree, or — in composer mode — whatever the composer is building.
+     * Returns the entry id.
+     */
+    saveToLibrary: (opts?: {
+      node?: ComponentNode;
+      nodeId?: string;
+      name?: string;
+      status?: LibraryStatus;
+      notes?: string;
+    }) => string | null;
+    /** Inline a fresh-id copy of an entry. Same placement rules as `addComponent`. */
+    placeFromLibrary: (entryId: string, opts?: { parentId?: string }) => string | null;
+    /** Overwrite an entry's tree with a node's current state (the "update" half of save). */
+    updateLibraryNode: (entryId: string, nodeId: string) => void;
+    patchLibraryEntry: (
+      entryId: string,
+      patch: Partial<Pick<LibraryEntry, "name" | "status" | "notes" | "protectedBase">>,
+    ) => void;
+    deleteLibraryEntry: (entryId: string) => void;
+    duplicateLibraryEntry: (entryId: string) => string | null;
+    importLibraryEntries: (entries: LibraryEntry[]) => number;
+    /** Restore a node from the approved base it was forked from. */
+    returnToApproved: (nodeId: string) => void;
+
+    /* -- Composer mode --------------------------------------------------- */
+
+    /**
+     * Stage vs Composer. Both edit the SAME `nodes` array through the same
+     * actions — entering the composer stashes the stage document and swaps in
+     * the artifact, so every existing action, panel and export path works
+     * unchanged. A second tree would have meant a second copy of all of it.
+     */
+    mode: "stage" | "composer";
+    composer: { entryId: string | null; name: string; dirty: boolean } | null;
+    enterComposer: (entryId?: string) => void;
+    /** Take a copy of a stage node into the composer to work on it in isolation. */
+    editInComposer: (nodeId: string) => void;
+    exitComposer: () => void;
+    /** Replace the composer's contents (Open another entry / New). */
+    composerLoad: (entryId: string | null) => void;
+    setComposerName: (name: string) => void;
+    /** Save the artifact to the library — updates the open entry, or creates one. */
+    composerSave: (opts?: { asNew?: boolean }) => string | null;
+    /** Drop the artifact onto the stage without leaving the composer. */
+    composerPlaceOnStage: () => string | null;
+
+    /* -- variations --------------------------------------------------------- */
+
+    /** Swap a node's look for a generated variant, keeping its identity and box. */
+    applyVariation: (id: string, variant: ComponentNode) => void;
+
+    /* -- exposed controls -------------------------------------------------- */
+
+    /** Lift a descendant's control onto `hostId` as one of its own knobs. */
+    promoteControl: (
+      hostId: string,
+      childId: string,
+      param: Omit<ExposedParam, "id" | "path">,
+    ) => void;
+    setExposedValue: (hostId: string, paramId: string, value: unknown) => void;
+    patchExposed: (hostId: string, paramId: string, patch: Partial<Pick<ExposedParam, "label" | "hint">>) => void;
+    removeExposed: (hostId: string, paramId: string) => void;
+
+    stageStash: StageStash | null;
+
     historyPast: DocSnapshot[];
     historyFuture: DocSnapshot[];
     lastRestoredSnapshotId: string | null;
@@ -289,8 +462,21 @@ export const useDarklighter = create<DarklighterStoreState>((set, get) => {
         (next.background !== undefined && next.background !== s.background);
       if (!docChanged) return next;
       const snap: DocSnapshot = { nodes: s.nodes, background: s.background };
-      return { ...next, historyPast: [...s.historyPast, snap].slice(-HISTORY_CAP), historyFuture: [] };
+      return {
+        ...next,
+        // One place to notice unsaved composer work: every doc mutation runs
+        // through here, so the flag can't drift from what's on screen.
+        composer: s.composer ? { ...s.composer, dirty: true } : s.composer,
+        historyPast: [...s.historyPast, snap].slice(-HISTORY_CAP),
+        historyFuture: [],
+      };
     });
+  };
+
+  /** Commit a library change to state and localStorage in one step. */
+  const writeLibrary = (entries: LibraryEntry[]) => {
+    persistLibrary(entries);
+    set({ library: entries });
   };
 
   return {
@@ -299,6 +485,11 @@ export const useDarklighter = create<DarklighterStoreState>((set, get) => {
     selection: [],
     playing: true,
     snapshots: loadJSON<SnapshotEntry[]>("snapshots", []),
+
+    library: loadLibrary(),
+    mode: "stage",
+    composer: null,
+    stageStash: null,
 
     historyPast: [],
     historyFuture: [],
@@ -597,6 +788,337 @@ export const useDarklighter = create<DarklighterStoreState>((set, get) => {
       });
       return newId;
     },
+
+    /* -- the Library ------------------------------------------------------ */
+
+    saveToLibrary: (opts) => {
+      const s = get();
+      const node =
+        opts?.node ??
+        (opts?.nodeId !== undefined
+          ? (findNode(s.nodes, opts.nodeId)?.node ?? null)
+          : s.mode === "composer"
+            ? composerArtifact(s.nodes, opts?.name ?? s.composer?.name ?? "Untitled part")
+            : null);
+      if (!node) return null;
+      // Frozen with fresh ids so the entry can never share identity with the
+      // node still on the canvas — editing one must not touch the other.
+      const frozen = cloneWithNewIds(node, () => nanoid(10));
+      const entry = entryFromNode(
+        { ...frozen, name: opts?.name?.trim() || node.name },
+        { status: opts?.status, notes: opts?.notes, source: "user" },
+      );
+      writeLibrary([entry, ...s.library]);
+      return entry.id;
+    },
+
+    placeFromLibrary: (entryId, opts) => {
+      const entry = get().library.find((e) => e.id === entryId);
+      if (!entry) return null;
+      const node = instanceOf(entry);
+      withHistory((s) => placeNode(s, node, opts));
+      return node.id;
+    },
+
+    updateLibraryNode: (entryId, nodeId) => {
+      const s = get();
+      const loc = findNode(s.nodes, nodeId);
+      if (!loc) return;
+      const frozen = cloneWithNewIds(loc.node, () => nanoid(10));
+      writeLibrary(
+        s.library.map((e) =>
+          e.id === entryId
+            ? {
+                ...e,
+                node: frozen,
+                scope: deriveScope(frozen),
+                tags: deriveTags(frozen),
+                updatedAt: Date.now(),
+              }
+            : e,
+        ),
+      );
+    },
+
+    patchLibraryEntry: (entryId, patch) =>
+      writeLibrary(
+        get().library.map((e) =>
+          e.id === entryId ? { ...e, ...patch, updatedAt: Date.now() } : e,
+        ),
+      ),
+
+    deleteLibraryEntry: (entryId) => writeLibrary(get().library.filter((e) => e.id !== entryId)),
+
+    duplicateLibraryEntry: (entryId) => {
+      const s = get();
+      const entry = s.library.find((e) => e.id === entryId);
+      if (!entry) return null;
+      // A duplicate is always a draft: approval is a judgement about one
+      // specific tree, and this one is about to be changed.
+      const copy = entryFromNode(cloneWithNewIds(entry.node, () => nanoid(10)), {
+        name: `${entry.name} copy`,
+        source: entry.source,
+        notes: entry.notes,
+        lineage: { parentEntryId: entry.id, baseComponent: entry.lineage?.baseComponent },
+      });
+      writeLibrary([copy, ...s.library]);
+      return copy.id;
+    },
+
+    importLibraryEntries: (entries) => {
+      const merged = mergeLibraries(get().library, entries);
+      writeLibrary(merged);
+      return entries.length;
+    },
+
+    returnToApproved: (nodeId) =>
+      withHistory((s) => {
+        const loc = findNode(s.nodes, nodeId);
+        if (!loc) return {};
+        const baseId = loc.node.provenance.baseComponent;
+        const entry = baseId ? s.library.find((e) => e.id === baseId) : undefined;
+        if (!entry) return {};
+        // The pristine tree, put back where the edited one sat — restoring the
+        // art shouldn't also move it.
+        const restored: ComponentNode = {
+          ...instanceOf(entry),
+          layout: { ...loc.node.layout },
+        };
+        return { nodes: mapNode(s.nodes, nodeId, () => restored), selection: [...loc.path.slice(0, -1), restored.id] };
+      }),
+
+    /* -- Composer --------------------------------------------------------- */
+
+    enterComposer: (entryId) => {
+      const s = get();
+      if (s.mode !== "composer") {
+        set({
+          mode: "composer",
+          stageStash: {
+            nodes: s.nodes,
+            background: s.background,
+            selection: s.selection,
+            historyPast: s.historyPast,
+            historyFuture: s.historyFuture,
+          },
+        });
+      }
+      get().composerLoad(entryId ?? null);
+    },
+
+    editInComposer: (nodeId) => {
+      const s = get();
+      const loc = findNode(s.nodes, nodeId);
+      if (!loc || s.mode === "composer") return;
+      // A copy, not the node itself: the composer is a workshop, and the thing
+      // on the stage should not silently change while you experiment.
+      const copy = cloneWithNewIds(loc.node, () => nanoid(10));
+      set({
+        mode: "composer",
+        stageStash: {
+          nodes: s.nodes,
+          background: s.background,
+          selection: s.selection,
+          historyPast: s.historyPast,
+          historyFuture: s.historyFuture,
+        },
+        composer: {
+          entryId: s.library.some((e) => e.id === loc.node.provenance.baseComponent)
+            ? loc.node.provenance.baseComponent!
+            : null,
+          name: loc.node.name,
+          dirty: false,
+        },
+        nodes: [{ ...copy, layout: { ...copy.layout, ...centeredBox(copy.layout.w, copy.layout.h), rotation: 0 } }],
+        selection: [copy.id],
+        historyPast: [],
+        historyFuture: [],
+      });
+    },
+
+    exitComposer: () => {
+      const s = get();
+      if (s.mode !== "composer" || !s.stageStash) return;
+      set({
+        mode: "stage",
+        composer: null,
+        stageStash: null,
+        nodes: s.stageStash.nodes,
+        background: s.stageStash.background,
+        selection: s.stageStash.selection,
+        historyPast: s.stageStash.historyPast,
+        historyFuture: s.stageStash.historyFuture,
+      });
+    },
+
+    composerLoad: (entryId) => {
+      const s = get();
+      const entry = entryId ? s.library.find((e) => e.id === entryId) : undefined;
+      // Opening a library entry gives you the entry's own tree to edit —
+      // unprotected, because that's the point of opening it here.
+      const node = entry
+        ? { ...instanceOf(entry, { protectedBase: false }), layout: { ...hydrateNode(entry.node).layout } }
+        : null;
+      const placed = node
+        ? [{ ...node, layout: { ...node.layout, ...centeredBox(node.layout.w, node.layout.h) } }]
+        : [];
+      set({
+        composer: { entryId: entry?.id ?? null, name: entry?.name ?? "Untitled part", dirty: false },
+        nodes: placed,
+        selection: placed.length ? [placed[0].id] : [],
+        historyPast: [],
+        historyFuture: [],
+      });
+    },
+
+    setComposerName: (name) =>
+      set((s) => (s.composer ? { composer: { ...s.composer, name } } : {})),
+
+    composerSave: (opts) => {
+      const s = get();
+      if (!s.composer) return null;
+      const artifact = composerArtifact(s.nodes, s.composer.name);
+      if (!artifact) return null;
+      const frozen = cloneWithNewIds(artifact, () => nanoid(10));
+      const existing = !opts?.asNew && s.composer.entryId
+        ? s.library.find((e) => e.id === s.composer!.entryId)
+        : undefined;
+
+      if (existing) {
+        writeLibrary(
+          s.library.map((e) =>
+            e.id === existing.id
+              ? {
+                  ...e,
+                  name: s.composer!.name,
+                  node: frozen,
+                  scope: deriveScope(frozen),
+                  tags: deriveTags(frozen),
+                  updatedAt: Date.now(),
+                }
+              : e,
+          ),
+        );
+        set({ composer: { ...s.composer, dirty: false } });
+        return existing.id;
+      }
+
+      const entry = entryFromNode(frozen, {
+        name: s.composer.name,
+        source: "user",
+        lineage: s.composer.entryId ? { parentEntryId: s.composer.entryId } : undefined,
+      });
+      writeLibrary([entry, ...s.library]);
+      set({ composer: { entryId: entry.id, name: entry.name, dirty: false } });
+      return entry.id;
+    },
+
+    composerPlaceOnStage: () => {
+      const s = get();
+      if (!s.composer || !s.stageStash) return null;
+      const artifact = composerArtifact(s.nodes, s.composer.name);
+      if (!artifact) return null;
+      const node = cloneWithNewIds(artifact, () => nanoid(10));
+      const positioned: ComponentNode = {
+        ...node,
+        provenance: {
+          source: "user",
+          baseComponent: s.composer.entryId ?? undefined,
+        },
+        layout: { ...node.layout, ...centeredBox(node.layout.w, node.layout.h, (s.stageStash.nodes.length % 6) * 32) },
+      };
+      // The stage isn't the live document right now, so this writes straight
+      // into the stash — and lands in the stage's undo history, not the
+      // composer's, which is where a user would look for it.
+      set({
+        stageStash: {
+          ...s.stageStash,
+          nodes: insertRoot(s.stageStash.nodes, positioned),
+          historyPast: [
+            ...s.stageStash.historyPast,
+            { nodes: s.stageStash.nodes, background: s.stageStash.background },
+          ].slice(-HISTORY_CAP),
+          historyFuture: [],
+          selection: [positioned.id],
+        },
+      });
+      return positioned.id;
+    },
+
+    /* -- variations -------------------------------------------------------- */
+
+    applyVariation: (id, variant) =>
+      withHistory((s) => ({
+        // Identity and placement belong to the canvas, not to the variant:
+        // picking a variation changes how a thing looks, not which thing it is
+        // or where it sits.
+        nodes: patchNode(s.nodes, id, (n) => ({
+          ...variant,
+          id: n.id,
+          name: n.name,
+          layout: n.layout,
+          locked: n.locked,
+          hidden: n.hidden,
+          provenance: n.provenance,
+        })),
+      })),
+
+    /* -- exposed controls (components-model/exposed.ts) -------------------- */
+
+    promoteControl: (hostId, childId, param) =>
+      withHistory((s) => {
+        const host = findNode(s.nodes, hostId)?.node;
+        if (!host) return {};
+        const path = childIndexPath(host, childId);
+        if (!path) return {};
+        if (isPromoted(host, path, param.channel, param.key)) return {};
+        const next: ExposedParam = { ...param, id: `xp_${nanoid(8)}`, path };
+        return {
+          nodes: patchNode(s.nodes, hostId, (n) => ({ ...n, exposed: [...(n.exposed ?? []), next] })),
+        };
+      }),
+
+    setExposedValue: (hostId, paramId, value) =>
+      withHistory((s) => {
+        const host = findNode(s.nodes, hostId)?.node;
+        const param = host?.exposed?.find((p) => p.id === paramId);
+        if (!host || !param) return {};
+        const target = resolveTarget(host, param.path);
+        if (!target) return {};
+        // Writes land on the target node through the normal patch guard, so a
+        // knob on an assembly is indistinguishable from editing the child by
+        // hand — same undo entry, same protected-fork behavior.
+        return {
+          nodes: patchNode(s.nodes, target.id, (n) => {
+            switch (param.channel) {
+              case "props":
+                return { ...n, props: { ...n.props, [param.key]: value } };
+              case "style":
+                return { ...n, style: { ...n.style, [param.key]: value } };
+              case "animation":
+                return { ...n, animation: { ...n.animation, [param.key]: value } };
+              case "layout":
+                return { ...n, layout: { ...n.layout, [param.key]: value } };
+            }
+          }),
+        };
+      }),
+
+    patchExposed: (hostId, paramId, patch) =>
+      withHistory((s) => ({
+        nodes: patchNode(s.nodes, hostId, (n) => ({
+          ...n,
+          exposed: (n.exposed ?? []).map((p) => (p.id === paramId ? { ...p, ...patch } : p)),
+        })),
+      })),
+
+    removeExposed: (hostId, paramId) =>
+      withHistory((s) => ({
+        nodes: patchNode(s.nodes, hostId, (n) => ({
+          ...n,
+          exposed: (n.exposed ?? []).filter((p) => p.id !== paramId),
+        })),
+      })),
 
     /* -- documents / presets / history ----------------------------------- */
 

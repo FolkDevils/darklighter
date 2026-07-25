@@ -25,7 +25,10 @@ function factory() {
   return baseNode(
     "staticAsset",
     asset?.label ?? "Static Asset",
-    { assetId: DEFAULT_ASSET } satisfies StaticAssetProps,
+    // `inkRole` is declared even though it's undefined by default: a factory is
+    // the list of props a kind supports, and `npm run conform` reads it as such
+    // when it checks that every control drives something real.
+    { assetId: DEFAULT_ASSET, inkRole: undefined } satisfies StaticAssetProps,
     { layout: asset ? assetPlacementSize(asset) : { w: 220, h: 120 } },
   );
 }

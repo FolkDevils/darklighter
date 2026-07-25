@@ -12,6 +12,7 @@ import {
   targetSize,
 } from "@/lib/svg/export";
 import { useDarklighter } from "@/state/store";
+import { surfaceOf } from "@/lib/colorway";
 import { Toggle } from "@/components/common/fields";
 
 const PNG_SCALES = [1, 2, 4] as const;
@@ -34,7 +35,13 @@ export function ExportActions({ target }: { target: ExportTarget }) {
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<Flash>(null);
 
-  const opts = { animated: false, background: withBackground ? background.color : null };
+  // `surface` is sent even when the backdrop isn't: a transparent export still
+  // has to be inked for the canvas it was designed on.
+  const opts = {
+    animated: false,
+    background: withBackground ? background.color : null,
+    surface: surfaceOf(background.color),
+  };
   const size = targetSize(target, opts);
   const say = (text: string, ok = true) => {
     setFlash({ text, ok });

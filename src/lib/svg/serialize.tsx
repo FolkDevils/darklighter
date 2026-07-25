@@ -25,6 +25,7 @@ import type { ComponentNode } from "@/components-model/types";
 import { flattenNode } from "@/lib/flattenSvg";
 import { CANVAS_H, CANVAS_W } from "@/lib/constants";
 import { brandHex, isHexLiteral, type BrandTokenId } from "@/data/brand/tokens";
+import { surfaceOf, type Surface } from "@/lib/colorway";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -38,9 +39,19 @@ export interface SvgOptions {
   declaration?: boolean;
   /** Breathing room around a part, in canvas units. */
   padding?: number;
+  /**
+   * Light or dark page (lib/colorway.ts). Defaults to whatever `background`
+   * implies, which is right for a backdrop-painted file. Pass it explicitly for
+   * a TRANSPARENT export that is still meant for a dark page — otherwise the
+   * file would come out inked for white paper and vanish where it's used.
+   */
+  surface?: Surface;
 }
 
 const round = (v: number) => Math.round(v * 100) / 100;
+
+/** Explicit surface wins; otherwise the painted backdrop answers the question. */
+const surfaceFor = (opts: SvgOptions): Surface => opts.surface ?? surfaceOf(opts.background);
 
 /** Brand token id or hex literal → hex, resolved the way the canvas does it. */
 export const backgroundHex = (color: string): string =>
@@ -86,13 +97,19 @@ export function serializeNode(node: ComponentNode, opts: SvgOptions): string {
     ...node,
     layout: { ...node.layout, x: pad + frame.dx, y: pad + frame.dy },
   };
-  return svgDocument(frame.w + pad * 2, frame.h + pad * 2, opts, flattenNode(placed, opts.animated));
+  return svgDocument(
+    frame.w + pad * 2,
+    frame.h + pad * 2,
+    opts,
+    flattenNode(placed, opts.animated, null, surfaceFor(opts)),
+  );
 }
 
 /** The whole canvas at its true coordinate space, so layer positions survive. */
 export function serializeCanvas(nodes: ComponentNode[], opts: SvgOptions): string {
+  const surface = surfaceFor(opts);
   const layers = nodes.map((n) => {
-    const el = flattenNode(n, opts.animated);
+    const el = flattenNode(n, opts.animated, null, surface);
     // `flattenNode` returns bare elements; a keyed fragment keeps React quiet
     // without adding anything to the output.
     return el ? <Layer key={n.id}>{el}</Layer> : null;

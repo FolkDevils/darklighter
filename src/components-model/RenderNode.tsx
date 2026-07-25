@@ -10,7 +10,7 @@
 import type { ComponentNode } from "./types";
 import { componentDef } from "./registry";
 import { resolveAnimation } from "./animResolve";
-import { resolveColor } from "@/lib/colorway";
+import { resolveColor, type Surface } from "@/lib/colorway";
 
 interface Props {
   node: ComponentNode;
@@ -19,6 +19,11 @@ interface Props {
   /** Id of the deep-selected node, so the canvas can outline it in place. */
   selectedId?: string;
   /**
+   * Light or dark page. Reverses `ink`/`field` for the whole subtree so a mark
+   * stays legible when the canvas background flips (lib/colorway.ts).
+   */
+  surface?: Surface;
+  /**
    * Timing offered by the nearest cascading ancestor, with its `enabled`
    * already reduced to "is that ancestor actually playing". Consumed only by
    * nodes whose own `animation.inherit` is true (types.ts AnimationConfig).
@@ -26,15 +31,15 @@ interface Props {
   inherited?: ComponentNode["animation"] | null;
 }
 
-export function RenderNode({ node, animate, selectedId, inherited = null }: Props) {
+export function RenderNode({ node, animate, selectedId, inherited = null, surface = "light" }: Props) {
   if (node.hidden) return null;
 
   const def = componentDef(node.kind);
-  const color = (role: Parameters<typeof resolveColor>[1]) => resolveColor(node.style, role);
+  const color = (role: Parameters<typeof resolveColor>[1]) => resolveColor(node.style, role, surface);
 
   const { effective, running, passDown } = resolveAnimation(node.animation, inherited, animate);
 
-  const content = def.Render({ node: { ...node, animation: effective }, animate: running, color });
+  const content = def.Render({ node: { ...node, animation: effective }, animate: running, color, surface });
   const cls = node.id === selectedId ? "node-deep-selected" : undefined;
 
   const slotEntries = node.slots ? Object.entries(node.slots).filter(([, v]) => v) : [];
@@ -73,7 +78,13 @@ export function RenderNode({ node, animate, selectedId, inherited = null }: Prop
                 transform: child.layout.rotation ? `rotate(${child.layout.rotation}deg)` : undefined,
               }}
             >
-              <RenderNode node={child} animate={animate} selectedId={selectedId} inherited={passDown} />
+              <RenderNode
+                node={child}
+                animate={animate}
+                selectedId={selectedId}
+                inherited={passDown}
+                surface={surface}
+              />
             </div>
           ),
       )}
@@ -88,7 +99,13 @@ export function RenderNode({ node, animate, selectedId, inherited = null }: Prop
             key={name}
             style={{ position: "absolute", left: frame.x, top: frame.y, width: frame.w, height: frame.h }}
           >
-            <RenderNode node={val!} animate={animate} selectedId={selectedId} inherited={passDown} />
+            <RenderNode
+              node={val!}
+              animate={animate}
+              selectedId={selectedId}
+              inherited={passDown}
+              surface={surface}
+            />
           </div>
         );
       })}

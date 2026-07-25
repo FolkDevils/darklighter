@@ -6,5 +6,6 @@ dist-ssr
 *.tsbuildinfo
 data/darklighter
 .smoke
+.conform
 .preview
 .preview-build

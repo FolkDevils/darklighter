@@ -6,17 +6,25 @@ import { findNode } from "@/lib/nodeTree";
 import { useDarklighter } from "@/state/store";
 import { BRAND_ASSETS, ASSET_CATEGORY_LABEL, type BrandAssetCategory } from "@/assets/brand/assets";
 import { Thumbnail } from "./Thumbnail";
+import { MyPartsTab } from "./MyPartsTab";
 
 /**
  * The gallery (PLAN.md §6): every registered component as a live, animating
  * preview card. Click adds to the canvas and selects — the instant-add flow
  * from the reference app.
  *
- * Three tabs mirror how the kit is actually built (docs/NORTH_STAR.md):
- *   Scenes — generated composites (radar scope, telemetry panel, lockups…),
- *            each one a tree of editable parts, not flat art
- *   Parts  — the primitives those scenes are made of
- *   Brand  — the only fixed marks we import as SVG
+ * Four tabs mirror how the kit is actually built (docs/NORTH_STAR.md):
+ *   Scenes  — generated composites (radar scope, telemetry panel, lockups…),
+ *             each one a tree of editable parts, not flat art
+ *   Parts   — the primitives those scenes are made of
+ *   Brand   — the only fixed marks we import as SVG
+ *   Saved   — what YOU (or the AI, once approved) made: the library
+ *             (docs/RECOMMENDATION.md §2), stored as data, not as kinds
+ *
+ * The first three read the registry — code, the grammar. The fourth reads the
+ * library — data, the vocabulary. Keeping them in one panel is deliberate:
+ * assembling something out of "a ringSet plus my approved Tracking Panel"
+ * should not mean visiting two places.
  *
  * `composite` is excluded: grouping is an action on a selection (⌘G / the
  * Hierarchy panel), not an object you place.
@@ -35,12 +43,13 @@ const COMPONENT_GROUP_LABEL: Record<string, string> = {
   composites: "Generated scenes",
 };
 
-type Tab = "scenes" | "parts" | "brand";
+type Tab = "scenes" | "parts" | "brand" | "saved";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "scenes", label: "Scenes" },
   { id: "parts", label: "Parts" },
-  { id: "brand", label: "Brand art" },
+  { id: "brand", label: "Brand" },
+  { id: "saved", label: "Saved" },
 ];
 
 /** Scenes tab = the assembled composites and lockups. */
@@ -51,6 +60,7 @@ export function LibraryPanel() {
   const addAsset = useDarklighter((s) => s.addAsset);
   const nodes = useDarklighter((s) => s.nodes);
   const selection = useDarklighter((s) => s.selection);
+  const mode = useDarklighter((s) => s.mode);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<Tab>("scenes");
 
@@ -59,6 +69,7 @@ export function LibraryPanel() {
   const parent = selected && componentDef(selected.kind).acceptsChildren ? selected : undefined;
 
   const entries = useMemo<Entry[]>(() => {
+    if (tab === "saved") return [];
     if (tab === "brand") {
       return BRAND_ASSETS.map((a) => ({
         type: "asset",
@@ -129,12 +140,18 @@ export function LibraryPanel() {
           <>
             Adding into <strong>{parent.name}</strong>
           </>
+        ) : mode === "composer" ? (
+          "Adding to the composer"
         ) : (
           "Adding to canvas"
         )}
       </p>
 
-      {filtered.length === 0 && <p className="library-empty">Nothing matches “{query}”.</p>}
+      {tab === "saved" && <MyPartsTab query={query} parentId={parent?.id} />}
+
+      {tab !== "saved" && filtered.length === 0 && (
+        <p className="library-empty">Nothing matches “{query}”.</p>
+      )}
 
       {[...groups.entries()].map(([group, items]) => (
         <div key={group} className="library-group">

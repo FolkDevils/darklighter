@@ -19,26 +19,28 @@ import type { ReactElement } from "react";
 import type { ComponentNode } from "@/components-model/types";
 import { componentDef } from "@/components-model/registry";
 import { resolveAnimation } from "@/components-model/animResolve";
-import { resolveColor } from "@/lib/colorway";
+import { resolveColor, type Surface } from "@/lib/colorway";
 
 export function flattenNode(
   node: ComponentNode,
   animate: boolean,
   inherited: ComponentNode["animation"] | null = null,
+  /** Light or dark page — reverses ink/field, exactly as on canvas. */
+  surface: Surface = "light",
 ): ReactElement | null {
   if (node.hidden) return null;
 
   const def = componentDef(node.kind);
-  const color = (role: Parameters<typeof resolveColor>[1]) => resolveColor(node.style, role);
+  const color = (role: Parameters<typeof resolveColor>[1]) => resolveColor(node.style, role, surface);
 
   const { effective, running, passDown } = resolveAnimation(node.animation, inherited, animate);
 
   const { x, y, w, h, rotation } = node.layout;
   const body = (
     <svg x={x} y={y} width={w} height={h} overflow="visible" opacity={node.style.opacity}>
-      {def.Render({ node: { ...node, animation: effective }, animate: running, color })}
+      {def.Render({ node: { ...node, animation: effective }, animate: running, color, surface })}
       {node.children.map((c) => (
-        <ChildFrame key={c.id} node={c} animate={animate} inherited={passDown} />
+        <ChildFrame key={c.id} node={c} animate={animate} inherited={passDown} surface={surface} />
       ))}
       {Object.entries(node.slots ?? {}).map(([name, val]) => {
         const slotDef = def.slots?.find((sd) => sd.name === name);
@@ -47,7 +49,7 @@ export function flattenNode(
         const frame = slotDef?.frame ?? val.layout;
         return (
           <svg key={name} x={frame.x} y={frame.y} width={frame.w} height={frame.h} overflow="visible">
-            {flattenNode({ ...val, layout: { ...val.layout, x: 0, y: 0 } }, animate, passDown)}
+            {flattenNode({ ...val, layout: { ...val.layout, x: 0, y: 0 } }, animate, passDown, surface)}
           </svg>
         );
       })}
@@ -62,10 +64,12 @@ function ChildFrame({
   node,
   animate,
   inherited,
+  surface,
 }: {
   node: ComponentNode;
   animate: boolean;
   inherited: ComponentNode["animation"] | null;
+  surface: Surface;
 }) {
-  return flattenNode(node, animate, inherited);
+  return flattenNode(node, animate, inherited, surface);
 }

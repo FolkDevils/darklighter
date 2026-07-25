@@ -8,7 +8,7 @@
  */
 import type { ColorRole, ComponentNode, ColorwayId } from "@/components-model/types";
 import { useDarklighter } from "@/state/store";
-import { resolveColor } from "@/lib/colorway";
+import { resolveColor, surfaceOf } from "@/lib/colorway";
 import { COLOR_ROLE_OPTIONS } from "@/components-model/defaults";
 import { kindUsage } from "@/components-model/introspect";
 import { ColorInput, Field, NumberInput, SelectInput, Slider } from "@/components/common/fields";
@@ -21,6 +21,7 @@ const COLORWAY_OPTIONS: { value: ColorwayId; label: string }[] = [
 
 export function StyleSection({ node }: { node: ComponentNode }) {
   const patchStyle = useDarklighter((s) => s.patchStyle);
+  const surface = useDarklighter((s) => surfaceOf(s.background.color));
   const { colorway, strokeScale, opacity, overrides } = node.style;
   // Only the roles this kind actually paints with, so the panel isn't seven
   // swatches deep on a component that draws in one color.
@@ -79,12 +80,19 @@ export function StyleSection({ node }: { node: ComponentNode }) {
 
       <div className="insp-group">
         <p className="insp-group-head">Colors used here</p>
+        {surface === "dark" && (
+          <p className="insp-note">
+            The canvas is dark, so <strong>ink</strong> and <strong>field</strong> are showing
+            reversed. Setting either one pins it and stops it reversing.
+          </p>
+        )}
         {roleOptions.map(({ value: role, label }) => {
           const overridden = Boolean(overrides?.[role]);
           return (
             <Field key={role} label={label}>
               <div className="insp-role-row">
-                <ColorInput value={resolveColor(node.style, role)} onChange={(hex) => setOverride(role, hex)} />
+                {/* Shows what the canvas is actually painting, reversal included. */}
+                <ColorInput value={resolveColor(node.style, role, surface)} onChange={(hex) => setOverride(role, hex)} />
                 {overridden && (
                   <button type="button" className="btn tiny" title="Back to the colorway default" onClick={() => setOverride(role, null)}>
                     Reset

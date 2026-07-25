@@ -195,6 +195,16 @@ export interface ComponentNode<K extends ComponentKind = ComponentKind> {
   hidden: boolean;
   provenance: Provenance;
   notes?: string;
+  /**
+   * Knobs this node lifts out of its descendants — the top-level parameters of
+   * an assembly (see components-model/exposed.ts). Additive and optional, so
+   * every existing node and saved file is unaffected; added in the Library/
+   * Composer pass, logged in docs/DECISIONS.md.
+   *
+   * Targets are child-index paths, not ids, because placing a library entry
+   * clones the tree with fresh ids.
+   */
+  exposed?: import("./exposed").ExposedParam[];
 }
 
 /* ------------------------------------------------------------------ */

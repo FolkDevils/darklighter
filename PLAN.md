@@ -9,7 +9,7 @@ Written by the planning model; to be **executed by a cheaper model** (recommende
 
 You are the executor. Your job is to burn as few tokens as possible while building. Rules:
 
-1. **Read only three docs to get up to speed:** this `PLAN.md`, `docs/STATUS.md` (current progress), and `assets/protora/ELEMENTS.md` (SVG asset catalog). That is your entire required context.
+1. **Read these to get up to speed, in order:** `docs/MISSION.md` (what this is for — it outranks any step here), `docs/NORTH_STAR.md` (the engineering invariants), this `PLAN.md`, `docs/STATUS.md` (current progress), and `assets/protora/ELEMENTS.md` (SVG asset catalog). That is your entire required context. Add `docs/EXTENDING.md` before you write a component and `docs/EXPORT.md` before you touch `src/lib/svg/`.
 2. **Do NOT re-explore the reference app.** Section 4 contains a complete file-by-file port map of `/Users/andreweaton/23andme-org-datavis/`. Open a reference file only at the moment you are porting/adapting it.
 3. **Do NOT open the 21 Protora SVGs to "understand" them.** `assets/protora/ELEMENTS.md` describes every file. Open an SVG only when extracting specific geometry for a component you are currently building.
 4. **After every phase (and any significant mid-phase stop): update `docs/STATUS.md`** — what's done, what's next, any deviations from this plan, and any gotchas discovered. Keep it under ~150 lines; it is a handoff file, not a diary. This is how the next session (or next model) resumes without re-reading code.
@@ -249,7 +249,7 @@ Composites (Phase 2) — built from primitives + slots:
 | **`logoP`** | **The Protora P shell (outlined path from `logo_01SmallMinimized.svg`) with slot `radarFill` (accepts tag `radar`, clipped to the bowl). Default fill = the approved reticle/rings treatment. P shell and radar are independently selectable/controllable.** |
 | `markLockup` | circular radar mark + wordmark — `Markwith acentleftsmalle accent.svg` |
 
-**Protected base presets** (Phase 5): `logoP` (approved original), `radarScope` classic, `markLockup` — flagged `provenance.protected: true`; editing always branches; a “Return to approved base” action restores the pristine version.
+**Protected bases** (Phase 5, BUILT — as library entries rather than shipped presets): any entry can be marked a protected base. Its placements carry `provenance.protected: true`, editing one always forks, and **Return to base** restores the pristine tree. Applying this to user-approved originals rather than to three hard-coded ones is the whole point — the curated set is grown, not shipped.
 
 ### 5.3 Pre-built contract files (AUTHORITATIVE — implement against, do not redesign)
 
@@ -303,7 +303,7 @@ Port Helix's SMIL approach wholesale — it's what makes animated *and* static e
 
 - **Preset format:** `.dkl.json` — `{ format: "darklighter", version: 1, name, background, nodes: ComponentNode[] }` (factory-hydrated on load, like Helix's `.helix.json`). Presets saved to localStorage + downloadable file; shipped presets in `src/presets/files/`.
 - **Version history:** snapshot ring buffer in the store (undo/redo already gives micro-history; snapshots are named macro-history). Branch = load snapshot as new working state with `parentSnapshot` recorded. Favorites/rejected/notes are snapshot metadata.
-- **Variation generation (Phase 5, deterministic — no AI needed):** `generateVariations(node, n, axes)` — axes are parameter ranges (seed, density, colorway, spacing, animation speed…). Renders an n-up grid picker; selecting one applies it, all are kept in history. This same function becomes an AI tool in Phase 7 (“create 20 variations”).
+- **Variation generation — BUILT (Phase 5), in `src/lib/variations.ts`.** `generateVariations(node, n, axes, offset)` over seed / colorway / density / speed, rendered as an n-up picker; Apply swaps the look in place, Keep saves the variant to the library without touching the canvas. Fully deterministic: variant *i* is a pure function of base, axes and index, and “More” walks to the next batch of one infinite sequence rather than re-rolling. This same function becomes an AI tool in Phase 7 (“create 20 variations”).
 
 ---
 
@@ -379,9 +379,15 @@ Port/adapt Library gallery (live thumbnails), Hierarchy tree panel, full Inspect
 Port AnimatedPath/Marker; implement per-kind SMIL behaviors (§7); AnimationSection in inspector with cascade + per-child overrides; global play/pause/replay.
 ✅ Accept: radarScope with rotating sweep + blinking blips + draw-on rings, all speeds/offsets adjustable per element; pausing shows the correct finished frame.
 
-### Phase 5 — Presets, history, variations (M)
-`.dkl.json` save/load; shipped protected presets (logoP approved, radarScope classic, markLockup); protected-fork behavior + “Return to approved base”; snapshot history panel with branch/favorite/reject/notes/compare; deterministic `generateVariations` + n-up picker.
-✅ Accept: edit logoP → branch created automatically, original restorable; generate 12 seed/colorway variations of radarScope and pick one; history survives reload (localStorage).
+### Phase 5 — Library, Composer, variations (M) — **DONE** (2026-07-25)
+
+Shipped as a **Library** rather than the “presets” originally written here. The reasoning is in `docs/RECOMMENDATION.md`; the calls are logged in `docs/DECISIONS.md`. Short version: a preset as specified replaces the whole document, which makes it a save-file mechanism. What “reuse what I refined” actually needs is a placeable *subtree* with approval state — so protection and lineage moved onto library entries, where they do the same job for a user-authored original that they were meant to do for a shipped one.
+
+Built: `LibraryEntry` + persistence + `.dkl-library.json` import/export; the gallery’s **Saved** tab (place, approve, protect, duplicate, rename, delete); protected bases with fork-on-edit and **Return to base**; **Composer mode**, a mode over the same store with the stage document parked in `stageStash`; **promoted controls** (`ComponentNode.exposed`, targets addressed by child-index path); deterministic `generateVariations` + the n-up picker; and **`npm run conform`** with `docs/EXTENDING.md` as its rulebook.
+
+Still open from the original scope: the snapshot history panel (store actions and the localStorage key exist; the panel is still a placeholder).
+
+✅ Accept: refine a part → Save to Library → place it again, and build a multi-part HUD on a blank Composer stage and save that too; approve and protect an entry, edit a placement, Return to base; generate 12 seed/colorway variations of radarScope and apply one; promote a nested control and drive it from the assembly’s own inspector; `npm run check` green.
 
 ### Phase 6 — Export (M) — **DONE** (see §9 and `docs/EXPORT.md`)
 Static + animated SVG, copy-markup, PNG at 1×/2×/4× with transparency, `.dkl.json` out and back in; scopes node/group/scene/canvas; ⇧⌘C.
