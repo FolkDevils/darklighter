@@ -39,16 +39,18 @@ const ext = (name: string, e: string) => (name.endsWith(`.${e}`) ? name : `${nam
  *
  * Three representations are offered at once and browsers pick: Chromium takes
  * `image/svg+xml` directly, some WebKit builds reject it and need HTML, and
- * `text/plain` is what a code editor pastes. Falls back progressively rather
- * than failing outright.
+ * `text/plain` is what a code editor pastes. `richSvg` may be a static,
+ * design-tool-safe counterpart of animated `svg`: Figma consumes the rich
+ * vector while a code editor still receives the complete animated XML.
+ * Falls back progressively rather than failing outright.
  */
-export async function copySvg(svg: string): Promise<boolean> {
-  const inline = svg.replace(/^<\?xml[^>]*>\s*/i, "");
+export async function copySvg(svg: string, richSvg = svg): Promise<boolean> {
+  const inline = richSvg.replace(/^<\?xml[^>]*>\s*/i, "");
   try {
     if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
       const plain = new Blob([svg], { type: "text/plain" });
       const html = new Blob([`<div>${inline}</div>`], { type: "text/html" });
-      const vector = new Blob([svg], { type: "image/svg+xml" });
+      const vector = new Blob([richSvg], { type: "image/svg+xml" });
       try {
         await navigator.clipboard.write([
           new ClipboardItem({ "image/svg+xml": vector, "text/html": html, "text/plain": plain }),

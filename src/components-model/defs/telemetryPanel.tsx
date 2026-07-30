@@ -60,7 +60,8 @@ function factory(): ComponentNode<"telemetryPanel"> {
           {
             count: 6,
             distribution: "cluster",
-            glyphId: "squareDot",
+            glyphShape: "square",
+            glyphIcon: "dot",
             dotSize: 8,
             roleColor: "hostile",
             driftRadius: 16,
@@ -88,7 +89,7 @@ function factory(): ComponentNode<"telemetryPanel"> {
         part(
           "targetGlyph",
           { x: 268, y: 214, w: 40, h: 40 },
-          { glyphId: "hexBolt", size: 26, roleColor: "primary" },
+          { shape: "hex", icon: "bolt", size: 26, roleColor: "primary" },
           { name: "Bolt", animation: { behavior: "pulse", delayMs: 900, durationMs: 2000 } },
         ),
         part(

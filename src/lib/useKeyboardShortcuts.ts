@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import { useDarklighter } from "@/state/store";
 import { findNode } from "@/lib/nodeTree";
 import { copySvgMarkup } from "@/lib/svg/export";
+import { surfaceOf } from "@/lib/colorway";
 
 const NUDGE = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as const;
 
@@ -44,7 +45,14 @@ export function useKeyboardShortcuts() {
         const node = findNode(s.nodes, selectedId)?.node;
         if (node) {
           e.preventDefault();
-          void copySvgMarkup({ scope: "node", node }, { animated: s.playing });
+          void copySvgMarkup(
+            { scope: "node", node },
+            {
+              animated: s.playing,
+              background: null,
+              surface: surfaceOf(s.background.color),
+            },
+          );
         }
         return;
       }

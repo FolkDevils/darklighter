@@ -49,13 +49,13 @@ function factory(): ComponentNode<"focusArcs"> {
         part(
           "targetGlyph",
           { x: 60, y: 85, w: 40, h: 40 },
-          { glyphId: "circleX", size: 22, roleColor: "primary" },
+          { shape: "circle", icon: "x", size: 22, roleColor: "primary" },
           { name: "Node A", animation: { behavior: "blink", durationMs: 1500 } },
         ),
         part(
           "targetGlyph",
           { x: 340, y: 85, w: 40, h: 40 },
-          { glyphId: "circleX", size: 22, roleColor: "primary" },
+          { shape: "circle", icon: "x", size: 22, roleColor: "primary" },
           { name: "Node B", animation: { behavior: "blink", delayMs: 300, durationMs: 1500 } },
         ),
         part(

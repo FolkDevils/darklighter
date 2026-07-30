@@ -1,12 +1,14 @@
 /**
  * `targetGlyph` — single registry-swappable mark (PLAN.md §5.2), source
  * geometry family: `Group 145/325.svg`, `Group 322.svg`. Shapes live in
- * `src/components-model/glyphs.tsx` (shared with `blipField`).
+ * `src/components-model/glyphs.tsx` (shared with `blipField`): a container
+ * `shape` plus a center `icon`, so any pairing is one node, not one id per
+ * combination.
  */
 import type { ComponentNode } from "@/components-model/types";
 import { defineComponent, type RenderProps } from "@/components-model/registry";
 import { baseNode, COLOR_ROLE_OPTIONS, strokeW } from "@/components-model/defaults";
-import { GLYPH_OPTIONS, renderGlyph, type GlyphId } from "@/components-model/glyphs";
+import { GLYPH_ICON_OPTIONS, GLYPH_SHAPE_OPTIONS, renderGlyph, type GlyphIcon, type GlyphShape } from "@/components-model/glyphs";
 import { behaviorOf, cycle, speedOf, timing, wanderPath } from "@/lib/anim";
 import { seededRandom } from "@/lib/math";
 import type { ColorRole } from "@/components-model/types";
@@ -14,7 +16,10 @@ import type { ColorRole } from "@/components-model/types";
 const GLYPH_BEHAVIORS = ["blink", "pulse", "ping", "rotate", "drift", "fadeIn"] as const;
 
 export interface TargetGlyphProps {
-  glyphId: GlyphId;
+  shape: GlyphShape;
+  icon: GlyphIcon;
+  /** Solid fill vs stroked outline, for both the shape and its icon. */
+  filled: boolean;
   size: number;
   roleColor: ColorRole;
   /** Wander radius for the `drift` behavior — a single contact being tracked. */
@@ -31,14 +36,14 @@ function factory(): ComponentNode<"targetGlyph"> {
   return baseNode(
     "targetGlyph",
     "Target Glyph",
-    { glyphId: "squareDot", size: 32, roleColor: "primary", driftRadius: 12 },
+    { shape: "square", icon: "dot", filled: false, size: 32, roleColor: "primary", driftRadius: 12 },
     { layout: { w: 64, h: 64 } },
   );
 }
 
 function Render({ node, animate, color }: RenderProps<"targetGlyph">) {
   const { w, h } = node.layout;
-  const { glyphId, size, roleColor, driftRadius } = node.props;
+  const { shape, icon, filled, size, roleColor, driftRadius } = node.props;
   const fill = color(roleColor);
   const behavior = animate ? behaviorOf(node.animation.behavior, GLYPH_BEHAVIORS) : null;
   const spin = node.animation.direction === "reverse" ? -360 : 360;
@@ -70,7 +75,13 @@ function Render({ node, animate, color }: RenderProps<"targetGlyph">) {
               <animate attributeName="opacity" values="0.9;0" {...cycle(node.animation)} />
             </circle>
           )}
-          {renderGlyph(glyphId, { size, color: fill, strokeWidth: strokeW(node, 1.6) })}
+          {renderGlyph(shape, icon, {
+            size,
+            color: fill,
+            fieldColor: color("field"),
+            strokeWidth: strokeW(node, 1.6),
+            filled,
+          })}
         </g>
       </g>
     </svg>
@@ -82,11 +93,13 @@ defineComponent({
   label: "Target Glyph",
   category: "glyphs",
   tags: ["glyph"],
-  describe: "A single swappable target mark (square+dot, circle+X, X, hex bolt, bracket, circle, square+X).",
+  describe: "A single swappable target mark: any container shape (square, circle, hex, bracket) with any center icon, outlined or filled.",
   factory,
   Render,
   controls: [
-    { kind: "select", key: "glyphId", label: "Glyph", options: GLYPH_OPTIONS },
+    { kind: "select", key: "shape", label: "Shape", options: GLYPH_SHAPE_OPTIONS },
+    { kind: "select", key: "icon", label: "Center icon", options: GLYPH_ICON_OPTIONS },
+    { kind: "toggle", key: "filled", label: "Filled" },
     { kind: "number", key: "size", label: "Size", min: 6, max: 200, step: 1 },
     { kind: "select", key: "roleColor", label: "Color role", options: COLOR_ROLE_OPTIONS },
     {

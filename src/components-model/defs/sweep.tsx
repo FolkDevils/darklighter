@@ -62,6 +62,12 @@ function Render({ node, animate, color }: RenderProps<"sweep">) {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%">
       <g opacity={1}>
+        {/* Figma's SVG-timeline importer rotates a group around its imported
+            frame center and ignores the explicit SMIL pivot. Without a
+            full-box shape it tight-bounds this group to the wedge, so the arm
+            orbits beside the radar center. The invisible rect preserves the
+            intended w×h frame without changing browser rendering. */}
+        <rect width={w} height={h} fill="transparent" data-motion-bounds="sweep" />
         {behavior === "fadeIn" && <animate attributeName="opacity" {...timing(node.animation, "0", "1")} />}
         {behavior === "rotate" && (
           <animateTransform

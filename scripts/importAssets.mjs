@@ -63,6 +63,7 @@ const CATALOG = [
   ["drones/nEUROn.svg", "nEUROn", "nEUROn", "craft", "nEUROn stealth UCAV planform."],
   ["drones/X45C.svg", "x45c", "X45C", "craft", "X-45C unmanned combat air vehicle planform."],
   ["drones/Sentinel.svg", "sentinel", "Sentinel", "craft", "Sentinel high-altitude UAV planform."],
+  ["drones/mobile_01.svg", "mobile01", "Mobile 01", "craft", "Mobile 01 ground unit planform."],
 ];
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));

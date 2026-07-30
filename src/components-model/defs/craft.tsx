@@ -10,7 +10,7 @@
 import type { ColorRole, ComponentNode } from "@/components-model/types";
 import { defineComponent, type RenderProps } from "@/components-model/registry";
 import { baseNode, COLOR_ROLE_OPTIONS } from "@/components-model/defaults";
-import { brandAsset, assetPlacementSize } from "@/assets/brand/assets";
+import { brandAsset, assetPlacementSize, namespaceSvgIds } from "@/assets/brand/assets";
 import {
   CRAFT_NOSE_TO_PATH,
   CRAFT_OPTIONS,
@@ -83,7 +83,10 @@ function Render({ node, animate, color }: RenderProps<"craft">) {
   const rand = (salt: number) => seededRandom(0, node.seed, salt);
   const vb = asset?.viewBox ?? { w: 100, h: 100 };
   const markup = asset
-    ? paintCraft(asset.markup, `${asset.id}:${paint}:${outlined ? "o" : "f"}`, paint, outlined)
+    ? namespaceSvgIds(
+        paintCraft(asset.markup, `${asset.id}:${paint}:${outlined ? "o" : "f"}`, paint, outlined),
+        node.id,
+      )
     : "";
 
   // Whenever this node is configured to drift — including while paused —

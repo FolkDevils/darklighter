@@ -13,7 +13,7 @@ import type { ComponentNode } from "@/components-model/types";
 import { allComponentDefs, componentDef } from "@/components-model/registry";
 import { RenderNode } from "@/components-model/RenderNode";
 import { serializeCanvas, serializeNode } from "@/lib/svg/serialize";
-import { buildDoc, docJson, parseDoc } from "@/lib/svg/export";
+import { buildClipboardSvgs, buildDoc, docJson, parseDoc } from "@/lib/svg/export";
 import { composerArtifact, hydrateNode } from "@/state/store";
 import { entryFromNode, libraryFile, mergeLibraries, parseLibraryFile } from "@/lib/library";
 import { childIndexPath, readExposed, resolveTarget } from "@/components-model/exposed";
@@ -172,9 +172,48 @@ for (const def of allComponentDefs()) {
     `${def.kind}: no HTML leaks into the file`,
     !/<div|<foreignObject|data-node-id/.test(still) && !/<div|<foreignObject/.test(moving),
   );
+  check(
+    `${def.kind}: exported groups carry no canvas-only absolute positioning`,
+    !/position:absolute|(?:left|top):-\d/.test(moving),
+  );
+  const ids = [...moving.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+  const refs = [...moving.matchAll(/url\(#([^)]+)\)/g)].map((match) => match[1]);
+  check(`${def.kind}: exported SVG ids are unique per instance`, new Set(ids).size === ids.length);
+  check(`${def.kind}: every exported url(#id) resolves`, refs.every((id) => ids.includes(id)));
   if (def.animBehaviors.length > 0) {
     check(`${def.kind}: animated export keeps its SMIL`, /<animate/.test(moving));
   }
+}
+
+{
+  const blips = componentDef("blipField").factory();
+  const driftingBlips = {
+    ...blips,
+    animation: { ...blips.animation, behavior: "drift" as const },
+  };
+  const moving = serializeNode(driftingBlips, { animated: true, padding: 0 });
+  check(
+    "motion-bleed viewport offsets cancel instead of shifting animated art",
+    /^<svg[^>]*><g><g>/.test(moving),
+  );
+}
+
+{
+  const sweep = componentDef("sweep").factory();
+  const target = { scope: "node" as const, node: sweep };
+  const clipboard = buildClipboardSvgs(target, { animated: true, padding: 0 });
+  check("animated clipboard text keeps SMIL", /<animateTransform/.test(clipboard.plain));
+  check("animated clipboard rich vector keeps Figma Timeline motion", clipboard.rich === clipboard.plain);
+  check(
+    "animated sweep exports full-box bounds for Figma's rotation pivot",
+    clipboard.rich.includes(
+      `<rect width="${sweep.layout.w}" height="${sweep.layout.h}" fill="`,
+    ) && clipboard.rich.includes(`data-motion-bounds="sweep"`),
+  );
+  check(
+    "sweep arm starts at the radar center",
+    clipboard.rich.includes(`<line x1="${sweep.layout.w / 2}" y1="${sweep.layout.h / 2}"`),
+  );
 }
 
 {

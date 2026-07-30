@@ -8,16 +8,17 @@
  * positioning `<g transform="translate(cx,cy)">`. `size` is the longest edge.
  */
 import type { ReactElement } from "react";
-import { brandAsset } from "@/assets/brand/assets";
+import { brandAsset, namespaceSvgIds } from "@/assets/brand/assets";
 
 /** Asset ids from `assets/protora/drones/` (see scripts/importAssets.mjs). */
-export type CraftId = "x47c" | "nEUROn" | "x45c" | "sentinel";
+export type CraftId = "x47c" | "nEUROn" | "x45c" | "sentinel" | "mobile01";
 
 export const CRAFT_OPTIONS: { value: CraftId; label: string }[] = [
   { value: "x47c", label: "X47C" },
   { value: "nEUROn", label: "nEUROn" },
   { value: "x45c", label: "X45C" },
   { value: "sentinel", label: "Sentinel" },
+  { value: "mobile01", label: "Mobile 01" },
 ];
 
 export const DEFAULT_CRAFT: CraftId = "x47c";
@@ -55,18 +56,23 @@ interface CraftMarkProps {
   size: number;
   color: string;
   outlined?: boolean;
+  /** Unique within the exported SVG; imported masks/clips use document-global ids. */
+  instanceId: string;
 }
 
 /** Render one drone planform, centered at local (0,0). */
 export function renderCraftMark(
   id: CraftId,
-  { size, color, outlined = false }: CraftMarkProps,
+  { size, color, outlined = false, instanceId }: CraftMarkProps,
 ): ReactElement {
   const asset = brandAsset(id);
   if (!asset) return <g />;
   const { w, h } = asset.viewBox;
   const s = size / Math.max(w, h);
-  const markup = paintCraft(asset.markup, `${asset.id}:${color}:${outlined ? "o" : "f"}`, color, outlined);
+  const markup = namespaceSvgIds(
+    paintCraft(asset.markup, `${asset.id}:${color}:${outlined ? "o" : "f"}`, color, outlined),
+    instanceId,
+  );
   return (
     <g
       transform={`translate(${(-w * s) / 2}, ${(-h * s) / 2}) scale(${s})`}

@@ -33,6 +33,26 @@ export const BRAND_ASSETS: BrandAsset[] = GENERATED_ASSETS;
 export const brandAsset = (id: string): BrandAsset | undefined =>
   BRAND_ASSETS.find((a) => a.id === id);
 
+/**
+ * Generated markup is namespaced per asset file, but a document can contain
+ * many instances of the same asset. SVG ids are document-global, so give each
+ * rendered instance its own ids before export/Figma import.
+ */
+export function namespaceSvgIds(markup: string, namespace: string): string {
+  const safeNamespace = namespace.replace(/[^A-Za-z0-9_.:-]/g, "_");
+  const ids = [...new Set([...markup.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]))];
+  let result = markup;
+  for (const id of ids) {
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const next = `${safeNamespace}-${id}`;
+    result = result
+      .replace(new RegExp(`(\\sid=")${escaped}(")`, "g"), `$1${next}$2`)
+      .replace(new RegExp(`url\\(#${escaped}\\)`, "g"), `url(#${next})`)
+      .replace(new RegExp(`((?:xlink:)?href=")#${escaped}(")`, "g"), `$1#${next}$2`);
+  }
+  return result;
+}
+
 export const ASSET_CATEGORY_LABEL: Record<BrandAssetCategory, string> = {
   brand: "Brand",
   scenes: "Scenes",

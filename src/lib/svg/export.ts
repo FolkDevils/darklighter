@@ -78,8 +78,25 @@ export function downloadSvgFile(target: ExportTarget, opts: ExportOpts): void {
   downloadSVG(fileBase(target, opts), buildSvg(target, opts));
 }
 
-export const copySvgMarkup = (target: ExportTarget, opts: ExportOpts): Promise<boolean> =>
-  copySvg(buildSvg(target, opts));
+/**
+ * Design tools consume the rich SVG/HTML clipboard flavors, while code editors
+ * consume text/plain. Figma's timeline importer now converts supported SMIL
+ * into native keyframes, so all flavors carry the same animation. Components
+ * that rotate around an explicit SMIL pivot must also provide importable bounds
+ * for that pivot (see the sweep's data-motion-bounds rect).
+ */
+export function buildClipboardSvgs(
+  target: ExportTarget,
+  opts: ExportOpts,
+): { plain: string; rich: string } {
+  const plain = buildSvg(target, opts);
+  return { plain, rich: plain };
+}
+
+export function copySvgMarkup(target: ExportTarget, opts: ExportOpts): Promise<boolean> {
+  const { plain, rich } = buildClipboardSvgs(target, opts);
+  return copySvg(plain, rich);
+}
 
 /* ------------------------------------------------------------------ */
 /* PNG                                                                 */

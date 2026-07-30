@@ -50,7 +50,7 @@ canvas**. From the toolbar popover or the inspector's Export section:
 
 | | Download | Copy |
 | --- | --- | --- |
-| Animated SVG | ✅ SMIL intact, replays when opened | ✅ vector markup |
+| Animated SVG | ✅ SMIL intact, replays when opened | ✅ SMIL intact; supported motion becomes Figma Timeline keyframes |
 | Static SVG | ✅ resting frame — the Figma-safe one | ✅ vector markup |
 | PNG | ✅ 1× / 2× / 4×, transparent unless background is on | ✅ 2× as pixels |
 | `.dkl.json` | ✅ reopens with every knob/seed/animation | ✅ as text |
@@ -85,8 +85,13 @@ keep the full 1600×1200 stage so layer positions survive.
 - **Raster ceiling:** scale is clamped so `w×h ≤ 16M px` (Safari's canvas limit);
   a 4× canvas PNG comes out closer to 2.3×, and the filename records the real
   scale.
-- **SMIL doesn't survive a Figma paste** — that's why Animated and Static sit
-  side by side rather than behind a preference.
+- **Figma Timeline imports supported SMIL, but its transform model differs.**
+  Figma converts supported animation into native keyframes and rotates around
+  the imported layer frame rather than preserving an SVG `animateTransform`
+  pivot. Rotating components therefore need explicit, invisible motion bounds
+  centered on that pivot (`sweep` is the reference implementation). Unsupported
+  SVG features may still fall back to their resting frame; **Copy static**
+  remains the dependable no-motion route.
 - **`mask-type: luminance`** is emitted as a style attribute on `logoP`'s mask.
   Browsers and QuickLook honour it; unusual renderers may not.
 - **No multi-select export.** The store's selection is a single path today

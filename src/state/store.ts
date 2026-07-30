@@ -1313,24 +1313,3 @@ export const useDarklighter = create<DarklighterStoreState>((set, get) => {
   };
 });
 
-/**
- * Opening document: a lockup and two scopes, so a new session lands on
- * something moving and editable instead of an empty stage. Real factory
- * output — every child is selectable and one keystroke deletes any of it.
- * Called from `main.tsx` AFTER the defs module registers the kinds; not done
- * in the initializer above, which runs before any def exists.
- */
-export function seedStarterDoc() {
-  if (useDarklighter.getState().nodes.length > 0) return;
-  const at = (node: ComponentNode, x: number, y: number): ComponentNode => ({
-    ...node,
-    layout: { ...node.layout, x, y },
-  });
-  useDarklighter.setState({
-    nodes: [
-      at(componentDef("heroLockup").factory(), 140, 80),
-      at(componentDef("radarScope").factory(), 180, 440),
-      at(componentDef("sweepModule").factory(), 820, 470),
-    ],
-  });
-}

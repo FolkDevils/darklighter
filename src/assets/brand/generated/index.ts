@@ -5,6 +5,7 @@ import { markup as x47c } from "./x47c";
 import { markup as nEUROn } from "./nEUROn";
 import { markup as x45c } from "./x45c";
 import { markup as sentinel } from "./sentinel";
+import { markup as mobile01 } from "./mobile01";
 
 export const GENERATED_ASSETS: BrandAsset[] = [
   {
@@ -56,5 +57,15 @@ export const GENERATED_ASSETS: BrandAsset[] = [
     viewBox: { w: 336, h: 128 },
     palette: [{ hex: "#FE3B1F", token: "redAlert" }],
     markup: sentinel,
+  },
+  {
+    id: "mobile01",
+    label: "Mobile 01",
+    category: "craft",
+    describe: "Mobile 01 ground unit planform.",
+    source: "drones/mobile_01.svg",
+    viewBox: { w: 57, h: 42 },
+    palette: [{ hex: "#FE3B1F", token: "redAlert" }],
+    markup: mobile01,
   },
 ];

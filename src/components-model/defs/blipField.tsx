@@ -15,7 +15,7 @@
 import type { ComponentNode } from "@/components-model/types";
 import { defineComponent, type RenderProps } from "@/components-model/registry";
 import { baseNode, COLOR_ROLE_OPTIONS, strokeW } from "@/components-model/defaults";
-import { GLYPH_OPTIONS, renderGlyph, type GlyphId } from "@/components-model/glyphs";
+import { GLYPH_ICON_OPTIONS, GLYPH_SHAPE_OPTIONS, renderGlyph, type GlyphIcon, type GlyphShape } from "@/components-model/glyphs";
 import {
   CRAFT_NOSE_TO_PATH,
   CRAFT_OPTIONS,
@@ -42,7 +42,10 @@ export interface BlipFieldProps {
   distribution: "ring" | "cluster" | "uniform";
   /** Glyph marks vs named drone planforms for every contact in the swarm. */
   mark: BlipMark;
-  glyphId: GlyphId;
+  glyphShape: GlyphShape;
+  glyphIcon: GlyphIcon;
+  /** Solid fill vs stroked outline for the glyph shape+icon. */
+  glyphFilled: boolean;
   craftId: CraftId;
   dotSize: number;
   glow: boolean;
@@ -69,7 +72,9 @@ function factory(): ComponentNode<"blipField"> {
       count: 14,
       distribution: "ring",
       mark: "glyph",
-      glyphId: "squareDot",
+      glyphShape: "square",
+      glyphIcon: "dot",
+      glyphFilled: false,
       craftId: DEFAULT_CRAFT,
       dotSize: 10,
       glow: true,
@@ -116,7 +121,9 @@ function Render({ node, animate, color }: RenderProps<"blipField">) {
     count,
     distribution,
     mark,
-    glyphId,
+    glyphShape,
+    glyphIcon,
+    glyphFilled,
     craftId,
     dotSize,
     glow,
@@ -158,15 +165,21 @@ function Render({ node, animate, color }: RenderProps<"blipField">) {
         // Blips read as independent contacts, so each gets a seeded phase
         // offset on top of the stagger — still deterministic, never lockstep.
         const phase = stagger(anim, i, n) + rand(10) * anim.durationMs;
-        const markEl =
+        const markEl = (instanceId: string) =>
           mark === "drone"
-            ? renderCraftMark(craftId, { size: s, color: fill })
-            : renderGlyph(glyphId, { size: s, color: fill, strokeWidth: strokeW(node, 1.3) });
+            ? renderCraftMark(craftId, { size: s, color: fill, instanceId })
+            : renderGlyph(glyphShape, glyphIcon, {
+                size: s,
+                color: fill,
+                fieldColor: color("field"),
+                strokeWidth: strokeW(node, 1.3),
+                filled: glyphFilled,
+              });
         const glowEl = glow ? <circle r={s * 1.9} fill={fill} opacity={0.18} /> : null;
-        const body = (
+        const body = (instanceId: string) => (
           <>
             {glowEl}
-            {markEl}
+            {markEl(instanceId)}
           </>
         );
 
@@ -193,6 +206,7 @@ function Render({ node, animate, color }: RenderProps<"blipField">) {
 
           const layer = (k: number) => {
             const timingProps = cycle(anim, phase + k * lag, dur);
+            const instanceId = `${node.id}-${i}-${k}`;
             return (
               <g key={k} opacity={k === 0 ? undefined : 0.4 / k}>
                 {behavior === "drift" ? (
@@ -202,9 +216,9 @@ function Render({ node, animate, color }: RenderProps<"blipField">) {
                     <animateMotion path={path} rotate={mark === "drone" ? "auto" : 0} {...timingProps} />
                     {glowEl}
                     {mark === "drone" ? (
-                      <g transform={`rotate(${CRAFT_NOSE_TO_PATH})`}>{markEl}</g>
+                      <g transform={`rotate(${CRAFT_NOSE_TO_PATH})`}>{markEl(instanceId)}</g>
                     ) : (
-                      markEl
+                      markEl(instanceId)
                     )}
                   </>
                 ) : (
@@ -220,7 +234,7 @@ function Render({ node, animate, color }: RenderProps<"blipField">) {
                       // nose stays on the flight path as the swarm turns.
                       <g transform={`rotate(${bank})`}>
                         {glowEl}
-                        {markEl}
+                        {markEl(instanceId)}
                       </g>
                     ) : (
                       <g>
@@ -230,7 +244,7 @@ function Render({ node, animate, color }: RenderProps<"blipField">) {
                           values={`0;${-turn}`}
                           {...timingProps}
                         />
-                        {body}
+                        {body(instanceId)}
                       </g>
                     )}
                   </>
@@ -271,7 +285,7 @@ function Render({ node, animate, color }: RenderProps<"blipField">) {
                 <animate attributeName="opacity" values="0.85;0" {...cycle(anim, phase)} />
               </circle>
             )}
-            {body}
+            {body(`${node.id}-${i}`)}
           </g>
         );
       })}
@@ -312,9 +326,22 @@ defineComponent({
     },
     {
       kind: "select",
-      key: "glyphId",
-      label: "Glyph",
-      options: GLYPH_OPTIONS,
+      key: "glyphShape",
+      label: "Glyph shape",
+      options: GLYPH_SHAPE_OPTIONS,
+      visibleWhen: (p) => p.mark !== "drone",
+    },
+    {
+      kind: "select",
+      key: "glyphIcon",
+      label: "Glyph center icon",
+      options: GLYPH_ICON_OPTIONS,
+      visibleWhen: (p) => p.mark !== "drone",
+    },
+    {
+      kind: "toggle",
+      key: "glyphFilled",
+      label: "Glyph filled",
       visibleWhen: (p) => p.mark !== "drone",
     },
     {

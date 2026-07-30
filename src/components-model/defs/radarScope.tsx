@@ -72,7 +72,8 @@ function factory(): ComponentNode<"radarScope"> {
           {
             count: 9,
             distribution: "ring",
-            glyphId: "squareDot",
+            glyphShape: "square",
+            glyphIcon: "dot",
             dotSize: 9,
             roleColor: "ink",
             driftRadius: 24,
@@ -84,7 +85,16 @@ function factory(): ComponentNode<"radarScope"> {
         part(
           "blipField",
           { x: inset(360), y: inset(360), w: 360, h: 360 },
-          { count: 5, distribution: "cluster", glyphId: "plainX", dotSize: 11, roleColor: "friendly", glow: false, trail: 0 },
+          {
+            count: 5,
+            distribution: "cluster",
+            glyphShape: "none",
+            glyphIcon: "x",
+            dotSize: 11,
+            roleColor: "friendly",
+            glow: false,
+            trail: 0,
+          },
           { name: "Friendlies", animation: { behavior: "orbit", durationMs: 26000, delayMs: 600, easing: "linear" } },
         ),
         part(
@@ -93,7 +103,8 @@ function factory(): ComponentNode<"radarScope"> {
           {
             count: 3,
             distribution: "ring",
-            glyphId: "circleX",
+            glyphShape: "circle",
+            glyphIcon: "x",
             dotSize: 13,
             roleColor: "hostile",
             driftRadius: 46,

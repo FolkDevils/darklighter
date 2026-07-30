@@ -67,13 +67,38 @@ function alignment(par: string): { ax: number; ay: number } {
 const round = (v: number) => Math.round(v * 1000) / 1000;
 
 /**
+ * Renderers that need motion bleed make their `<svg>` physically larger and
+ * pull it back over the layout box with absolute `left`/`top` offsets. In the
+ * canvas those CSS offsets and the widened viewBox cancel each other. Once the
+ * viewport becomes a `<g>`, CSS positioning no longer applies, so fold those
+ * offsets into the SVG transform explicitly or animated exports drift by the
+ * bleed padding (most visibly: lockup blips no longer center on their rings).
+ */
+function styleOffset(style: unknown, axis: "left" | "top", basis: number): number {
+  if (!style || typeof style !== "object") return 0;
+  const value = (style as Record<string, unknown>)[axis];
+  if (value == null || value === "") return 0;
+  return len(value, basis);
+}
+
+/** CSS box-positioning has been resolved into the group transform above. */
+function portableGroupStyle(style: unknown): Record<string, unknown> | undefined {
+  if (!style || typeof style !== "object") return undefined;
+  const next = { ...(style as Record<string, unknown>) };
+  for (const key of ["position", "left", "top", "right", "bottom", "width", "height", "overflow"]) {
+    delete next[key];
+  }
+  return Object.keys(next).length ? next : undefined;
+}
+
+/**
  * The `<g>` equivalent of an `<svg>` viewport occupying `box`, plus the box its
  * own children should be measured against.
  */
 function viewportToGroup(el: ReactElement, box: Box): { transform?: string; inner: Box } {
   const p = el.props as Record<string, unknown>;
-  const x = len(p.x, 0) || 0;
-  const y = len(p.y, 0) || 0;
+  const x = (len(p.x, 0) || 0) + styleOffset(p.style, "left", box.w);
+  const y = (len(p.y, 0) || 0) + styleOffset(p.style, "top", box.h);
   const w = len(p.width, box.w);
   const h = len(p.height, box.h);
   const vb = parseViewBox(p.viewBox);
@@ -107,7 +132,7 @@ function viewportToGroup(el: ReactElement, box: Box): { transform?: string; inne
 }
 
 /** Props a viewport carries that have to move onto the group replacing it. */
-const CARRIED = ["opacity", "mask", "clipPath", "filter", "style", "className"] as const;
+const CARRIED = ["opacity", "mask", "clipPath", "filter", "className"] as const;
 
 /**
  * Rewrite every `<svg>` in a rendered tree as a `<g transform>`. Anything else
@@ -131,6 +156,8 @@ function degroup(child: ReactNode, box: Box): ReactNode {
   const next: Record<string, unknown> = {};
   if (transform) next.transform = transform;
   for (const k of CARRIED) if (p[k] !== undefined) next[k] = p[k];
+  const style = portableGroupStyle(p.style);
+  if (style) next.style = style;
   return (
     <g key={el.key ?? undefined} {...next}>
       {mapKids(p.children as ReactNode, inner)}

@@ -42,7 +42,7 @@ function factory(): ComponentNode<"sweepModule"> {
         part(
           "targetGlyph",
           { x: 76, y: 118, w: 40, h: 40 },
-          { glyphId: "circle", size: 14, roleColor: "accent" },
+          { shape: "circle", icon: "none", size: 14, roleColor: "accent" },
           { name: "Source", animation: { behavior: "ping", durationMs: 1800 } },
         ),
         part(

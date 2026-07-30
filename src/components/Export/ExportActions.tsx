@@ -25,9 +25,9 @@ type Flash = { text: string; ok: boolean } | null;
  * it — a part, a group, a whole scene and the canvas are all just a target,
  * because the document is a tree.
  *
- * Animated and static sit side by side on purpose: SMIL replays in a browser
- * and does not survive a Figma paste, so that choice belongs to the user at the
- * moment of export rather than to a preference screen.
+ * Animated and static sit side by side on purpose: SMIL replays in browsers
+ * and supported motion becomes native Figma Timeline keyframes, while static
+ * is the predictable resting-frame vector.
  */
 export function ExportActions({ target }: { target: ExportTarget }) {
   const background = useDarklighter((s) => s.background);
@@ -79,10 +79,12 @@ export function ExportActions({ target }: { target: ExportTarget }) {
           onClick={() => downloadSvgFile(target, opts)}>
           ↓ Static
         </button>
-        <button type="button" className="btn" onClick={() => copied("Copied animated SVG", () => copySvgMarkup(target, { ...opts, animated: true }))}>
+        <button type="button" className="btn" title="Animated SVG; supported SMIL becomes native keyframes in Figma Timeline"
+          onClick={() => copied("Copied animated SVG", () => copySvgMarkup(target, { ...opts, animated: true }))}>
           ⧉ Copy animated
         </button>
-        <button type="button" className="btn" onClick={() => copied("Copied static SVG", () => copySvgMarkup(target, opts))}>
+        <button type="button" className="btn" title="Figma-safe editable vector at the resting frame"
+          onClick={() => copied("Copied static SVG", () => copySvgMarkup(target, opts))}>
           ⧉ Copy static
         </button>
       </div>

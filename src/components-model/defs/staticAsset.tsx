@@ -14,7 +14,7 @@
 import type { ColorRole, StaticAssetProps } from "@/components-model/types";
 import { defineComponent, type RenderProps } from "@/components-model/registry";
 import { baseNode, COLOR_ROLE_OPTIONS } from "@/components-model/defaults";
-import { BRAND_ASSETS, brandAsset, assetPlacementSize } from "@/assets/brand/assets";
+import { BRAND_ASSETS, brandAsset, assetPlacementSize, namespaceSvgIds } from "@/assets/brand/assets";
 import { behaviorOf, cycle, timing } from "@/lib/anim";
 
 const DEFAULT_ASSET = BRAND_ASSETS[0]?.id ?? "protoraWordmark";
@@ -69,7 +69,8 @@ function Render({ node, animate, color }: RenderProps<"staticAsset">) {
   }
 
   const ink = inkRole ? color(inkRole) : null;
-  const markup = ink ? flattenInk(asset.markup, `${asset.id}:${ink}`, ink) : asset.markup;
+  const painted = ink ? flattenInk(asset.markup, `${asset.id}:${ink}`, ink) : asset.markup;
+  const markup = namespaceSvgIds(painted, node.id);
 
   // The reveal has to be a sibling of the injected markup, so it animates the
   // wrapping <g> rather than fighting dangerouslySetInnerHTML for children.

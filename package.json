@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "assets": "node scripts/importAssets.mjs",
+    "mesh": "node scripts/importMesh.mjs",
     "smoke": "vite build --ssr scripts/smoke.tsx --outDir .smoke --logLevel error && node .smoke/smoke.js",
     "conform": "vite build --ssr scripts/conform.tsx --outDir .conform --logLevel error && node .conform/conform.js",
     "check": "npm run typecheck && npm run smoke && npm run conform",

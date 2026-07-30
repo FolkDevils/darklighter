@@ -10,7 +10,7 @@
 ## Current state
 
 - **Phases 0–3 complete (scaffold, component model, composites/animation/logo, editing model). Phase 6 (export) complete. Phase 5 (library, composer, variations) complete — presets became a Library, see below. Phase 7 (AI) is next and is now the only major piece left.**
-- `npm run check` (typecheck + smoke + **conform**), `npm run build` and `npm run shots` are green. Bundle 411 KB (`react-dom/server` is in there on purpose — see the Phase 6 decisions).
+- `npm run check` (typecheck + smoke + **conform**), `npm run build` and `npm run shots` are green. Bundle 457 KB (`react-dom/server` is in there on purpose — see the Phase 6 decisions; ~20 KB of that is imported mesh geometry).
 - **Session 2 (2026-07-24):** corrected a serious drift (the 21 reference SVGs had been imported as flat art) and rebuilt them as parametric, animated composites — "Phase 2 — the course correction" in `docs/DECISIONS.md`.
 - **Session 3 (2026-07-24):** full audit of the selection → inspector → animation → drag path, then fixed what it found. The headline bug: a part's Animate toggle did nothing inside a cascading scene. See "Phase 3 — making every control real" in `docs/DECISIONS.md`.
 - **Session 3b (2026-07-24):** contacts now MOVE. `drift` (seeded wander) and `orbit` (formation turn) join the behavior set, with track trails. See "Phase 3b — contacts that move" in `docs/DECISIONS.md`.
@@ -50,13 +50,24 @@ its knobs, save it. **A saved entry is never registered as a kind** — that wou
 
 ## What the app does now
 
-- **25 registered components**, all live in the gallery with animating thumbnails:
+- **27 registered components**, all live in the gallery with animating thumbnails:
   - *Primitives:* `ringSet`, `sweep`, `polarGrid`, `targetGlyph`, `reticle`, `arcSignal`,
-    `blipField`, `statusText`, `labelPill`, `vectorLine`, `craft`, `trajectory`,
+    `blipField`, `statusText`, `labelPill`, `vectorLine`, `craft`, `wireMesh`, `trajectory`,
     `readoutBar`, `cornerFrame`
   - *Generated scenes:* `radarScope` (=Group 81), `telemetryPanel` (=145/325),
     `sweepModule` (=143/324), `launchKit` (=147/328), `focusArcs` (=344),
-    `pingCraft` (=276), `markLockup`, `heroLockup`, `logoP`
+    `pingCraft` (=276), `signalIntercept`, `markLockup`, `heroLockup`, `logoP`
+- **One part is 3D.** `wireMesh` spins an imported model (`WINGWATCHER.glb`) as vector line
+  work, with rotation, tilt, perspective, spin axis and five detail levels as controls
+  (**Rotation** aims the paused frame, so any attitude in the turn can be exported). Three looks:
+  **frame** (the default — stations, stringers and profiles sliced off the full-resolution
+  model, i.e. a naval lines plan, which is what a technical illustration draws), **wire**
+  (the decimated triangle mesh; gets busier rather than clearer as detail rises) and
+  **solid** (filled silhouette). Geometry is imported offline by `npm run mesh` and
+  projected per frame at render time, so the paused frame is real geometry that exports as
+  one editable path. **Read the Phase 5c decisions before touching it** — the frame-baked
+  SMIL is what keeps a 3D part inside the static-export invariant, and the entries record
+  which approaches were tried and rejected on this mesh.
   - *Hosts:* `composite` (⌘G result), `staticAsset` (the wordmark, and only the wordmark)
 - **Everything animates.** SMIL only, emitted exclusively when playing, so the resting
   frame always equals the static export (verified by `npm run smoke`, which fails if any
@@ -120,7 +131,10 @@ its knobs, save it. **A saved entry is never registered as a kind** — that wou
 | `src/lib/flattenSvg.tsx` | Tree → one pure-SVG tree (nested `<svg>`, no divs). **The serialization source of truth** for preview + export |
 | `scripts/smoke.tsx`, `scripts/preview.tsx` | `npm run smoke` (headless render + invariant check), `npm run shots` (writes `.preview/*.svg`) |
 | `scripts/importAssets.mjs` | Catalog cut from 21 files to 1 (`logoMain.svg`) — read the comment above `CATALOG` before adding anything |
-| `src/state/store.ts` → `seedStarterDoc()` | Opening doc (heroLockup + radarScope + sweepModule). Called from `main.tsx` after registration, never from the store initializer |
+| `scripts/importMesh.mjs` | **Session 6.** `.glb` → decimated point/face list (`npm run mesh`). Dependency-free GLB parse + deterministic vertex clustering; LODs are grid resolutions, tune by reading the printed counts |
+| `src/assets/mesh/meshes.ts` | **Session 6.** The hand-written half of the mesh pipeline (type, lookup, option lists), exactly parallel to `assets/brand/assets.ts` |
+| `src/lib/mesh3d.ts` | **Session 6.** 3D → SVG projection: one `d` string per rotation step, one path with many subpaths. The header explains why not WebGL |
+| `src/components-model/defs/wireMesh.tsx` | **Session 6.** The spinning model part |
 | `src/components-model/animResolve.ts` | **Session 3.** The one implementation of enabled/inherit/cascade |
 | `src/components-model/introspect.ts` | **Session 3.** Derives a kind's real control surface by running its renderer |
 | `src/components/Canvas/ChildHandle.tsx` | **Session 3.** Drag/resize handle for the selected nested part |
@@ -207,6 +221,13 @@ its knobs, save it. **A saved entry is never registered as a kind** — that wou
   reaches around the store for "the canvas" will not.
 - Promoted controls address their target by child-INDEX path, not by node id, because
   placing a library entry clones the tree with fresh ids. `npm run smoke` proves it.
+- `wireMesh` is the one heavy component: markup is `points × frames`, so the default is ~267 KB
+  animated against ~15 KB static, and Max detail is roughly four times that. Deliberate, with
+  both knobs exposed; don't "fix" it by hard-coding a lower detail. `npm run mesh` regenerates
+  the geometry and must stay deterministic — a different mesh would silently redraw every saved
+  document using it. The two top detail levels are also what pushed the bundle from 411 KB to
+  857 KB; most of that is the triangulated mesh at Ultra/Max, which is the look that benefits
+  least from them.
 - Dev server: Vite auto-increments off 5173 if the port is busy — check the printed port.
 - `git` still has **no commits**.
 
